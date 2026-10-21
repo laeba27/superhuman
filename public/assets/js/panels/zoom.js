@@ -1,5 +1,3 @@
-/** Zoom control in the bottom bar: − / percentage (click for Fit) / +, plus Ctrl+scroll on the canvas. */
-
 import { clamp, h, icon } from '../utils.js';
 
 const STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2];
@@ -33,7 +31,6 @@ export function createZoom(root, store, canvas, viewport) {
     if (state.mode !== prev.mode) sync({ scale: canvas.getScale(), flowing: false });
   });
 
-  // Ctrl + scroll (and trackpad pinch, which browsers report the same way) zooms smoothly.
   viewport.addEventListener('wheel', (event) => {
     if (!event.ctrlKey || store.getState().mode !== 'edit') return;
     event.preventDefault();

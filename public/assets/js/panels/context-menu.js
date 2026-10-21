@@ -1,5 +1,3 @@
-/** Right-click menu on the canvas, with the same commands as the keyboard shortcuts. */
-
 import { shortcut } from '../commands.js';
 import { h, icon } from '../utils.js';
 
@@ -10,7 +8,6 @@ export function createContextMenu(viewport, store, commands) {
   viewport.addEventListener('contextmenu', (event) => {
     const state = store.getState();
     if (!state.dashboard || state.mode !== 'edit') return;
-    // While typing, keep the browser's own menu (spelling suggestions, copy/paste).
     if (event.target.closest('[contenteditable="true"]')) return;
     event.preventDefault();
     const target = event.target.closest('.element, .section');
@@ -44,7 +41,6 @@ export function createContextMenu(viewport, store, commands) {
       : [paste]));
     menu.lastElementChild.classList.toggle('is-danger', Boolean(id));
 
-    // Show, then keep it inside the window.
     menu.hidden = false;
     const { width, height } = menu.getBoundingClientRect();
     menu.style.left = `${Math.min(x, innerWidth - width - 8)}px`;

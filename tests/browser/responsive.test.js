@@ -40,7 +40,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('tab title shows dashboard name', await ev(`return document.title === 'Sales Overview · Dashboard Builder'`));
   const desktopBoxes = await boxes();
 
-  // ---- Zoom
   const fit = await ev(`return parseInt(document.querySelector('.zoom-label').textContent)`);
   check('zoom starts at Fit', (await zoomLabel()).endsWith('· Fit') && Math.abs(await canvasWidth() - 1200 * fit / 100) <= 6, `${await zoomLabel()} ${await canvasWidth()}`);
   await click('[aria-label="Zoom in"]');
@@ -48,7 +47,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await key('=', 'Equal', 187, META); await key('=', 'Equal', 187, META);
   check('⌘= zooms in (100%), canvas 1200px wide', (await zoomLabel()) === '100%' && (await canvasWidth()) === 1200, `${await zoomLabel()} ${await canvasWidth()}`);
   check('wider than the view: scrolls sideways', await ev(`const v = document.getElementById('viewport'); return v.scrollWidth > v.clientWidth`));
-  // drag still lands correctly at 100%
   const before = await ev(`return parseInt(document.querySelector('[data-id="${REGION}"]').style.top)`);
   const p = await ev(`const r = document.querySelector('[data-id="${REGION}"]').getBoundingClientRect(); return { x: r.left + 12, y: r.bottom - 12 }`);
   await mouse('mousePressed', p.x, p.y);
@@ -64,7 +62,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('⌘0 fits again', (await zoomLabel()).endsWith('· Fit'));
   check('zoom label disabled at Fit', await ev(`return document.querySelector('.zoom-label').disabled`));
 
-  // ---- Shortcuts sheet
   await click('.canvas-viewport');
   await key('?', 'Slash', 191, 8);
   check('"?" opens the shortcuts sheet', await waitFor(`document.querySelector('.shortcuts-dialog').open && document.querySelector('.shortcuts-dialog').textContent.includes('Duplicate')`));
@@ -74,7 +71,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('rail help button opens it', await waitFor(`document.querySelector('.shortcuts-dialog').open`));
   await clickText('.shortcuts-dialog .btn', 'Close');
 
-  // ---- Empty hint
   const fresh = (await (await fetch(BASE + 'api/dashboards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Blank' }) })).json()).data.id;
   await b.s('Page.navigate', { url: `${BASE}?d=${fresh}` });
   check('empty dashboard shows a hint', await waitFor(`document.querySelector('.chip-label').textContent === 'Blank' && !document.querySelector('.empty-hint').hidden`));
@@ -83,7 +79,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await key('z', 'KeyZ', 90, META);
   await sleep(1800);
 
-  // ---- Copy preview link
   await b.s('Browser.grantPermissions', { origin: new URL(BASE).origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }).catch(() => {});
   await b.s('Page.navigate', { url: `${BASE}?d=${D}` });
   await waitFor(`document.querySelectorAll('.canvas .element').length === 4`);
@@ -96,7 +91,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('preview link opens in preview mode', await waitFor(`document.body.dataset.mode === 'preview' && document.querySelectorAll('.canvas .element').length === 4`));
   check('preview hides editor chrome and status bar', await ev(`return getComputedStyle(document.querySelector('.rail')).display === 'none' && getComputedStyle(document.querySelector('.statusbar')).display === 'none'`));
 
-  // ---- Mobile flow in preview (desktop browser, Mobile width)
   await click('[aria-label="Mobile width"]');
   check('mobile preview uses the one-column flow', await waitFor(`document.getElementById('canvas').classList.contains('is-flow')`));
   const flow = await ev(`
@@ -122,7 +116,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1800);
   check('back to editing: saved layout untouched, nothing to save', (await boxes()) === desktopBoxes && puts === 0 && (await ev(`return document.querySelector('.save-status').textContent`)) === 'Saved');
 
-  // ---- A real phone (390×844)
   await b.s('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await b.s('Emulation.setTouchEmulationEnabled', { enabled: true });
   await b.s('Page.navigate', { url: `${BASE}?d=${D}` });

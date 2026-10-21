@@ -1,5 +1,3 @@
-/** Keyboard shortcuts sheet, opened with "?" or the help button on the rail. */
-
 import { shortcut } from '../commands.js';
 import { h } from '../utils.js';
 

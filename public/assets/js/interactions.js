@@ -1,16 +1,3 @@
-/**
- * Drag and resize for sections and elements, using interact.js (global `interact`).
- *
- * Pointer positions are converted to canvas units on every move (the canvas
- * is CSS-scaled and the viewport scrolls), and positions snap to the
- * dashboard grid unless Alt is held.
- *
- * - Sections move and resize live through the store.
- * - Elements resize live through the store. While dragging, an element only
- *   moves visually (CSS transform) so it can leave its section; on drop it is
- *   committed once, into whichever section is under the pointer.
- */
-
 import { findItem, MIN_ELEMENT_SIZE, MIN_SECTION_SIZE } from './store.js';
 import { clamp } from './utils.js';
 
@@ -32,8 +19,6 @@ export function createInteractions({ viewport, store, canvas }) {
   }
 
   const autoScroll = { container: viewport, margin: 48, speed: 700 };
-
-  // ---- Sections ---------------------------------------------------------------
 
   interact('.section')
     .draggable({
@@ -67,8 +52,6 @@ export function createInteractions({ viewport, store, canvas }) {
     })
     .resizable({ autoScroll, edges: edgeSelectors('section'), listeners: resizeListeners('section') });
 
-  // ---- Elements ---------------------------------------------------------------
-
   interact('.element')
     .draggable({
       autoScroll,
@@ -99,7 +82,6 @@ export function createInteractions({ viewport, store, canvas }) {
           const snap = snapper(event);
           const target = sectionAt(dashboard(), p) ?? source;
 
-          // Position inside the target section. The section grows downwards on drop if needed.
           const x = clamp(snap(p.x - grab.x - target.x), 0, Math.max(0, target.width - item.width));
           const y = Math.max(0, snap(p.y - grab.y - target.y));
           active.pos = { x, y };
@@ -127,8 +109,6 @@ export function createInteractions({ viewport, store, canvas }) {
       },
     })
     .resizable({ autoScroll, edges: edgeSelectors('element'), listeners: resizeListeners('element') });
-
-  // ---- Resize (shared) -----------------------------------------------------------
 
   function resizeListeners(kind) {
     return {
@@ -182,10 +162,8 @@ export function createInteractions({ viewport, store, canvas }) {
   }
 }
 
-/** The handles each item gets; canvas.js draws them. */
 export const HANDLE_EDGES = EDGES;
 
-/** interact.js edge selectors, scoped by class so a section never grabs its elements' handles. */
 function edgeSelectors(kind) {
   const sel = (...edges) => edges.map((e) => `.handle-${kind}.handle-${e}`).join(', ');
   return {
@@ -196,7 +174,6 @@ function edgeSelectors(kind) {
   };
 }
 
-/** The top-most section under a canvas point. */
 export function sectionAt(dashboard, p) {
   return dashboard.sections
     .map((section, order) => ({ section, order }))

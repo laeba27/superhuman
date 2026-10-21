@@ -1,15 +1,3 @@
-/**
- * Draws the dashboard: a fixed-width canvas (1200 logical px) scaled to fit
- * the viewport (or zoomed), with absolutely positioned sections and elements.
- *
- * Previewing on a narrow screen (phone, or the Mobile width) switches to a
- * one-column flow instead: sections stack, elements stack inside them at full
- * width, and nothing is scaled down. The saved layout is not changed.
- *
- * Nodes are kept per id and only touched when their state object changed,
- * so charts and images aren't rebuilt on every edit.
- */
-
 import { registry } from './elements/index.js';
 import { HANDLE_EDGES } from './interactions.js';
 import { skinCss } from './styles.js';
@@ -17,15 +5,12 @@ import { clamp, h } from './utils.js';
 
 const CANVAS_PADDING_BOTTOM = 120;
 
-/** Width of the preview frame for each device; desktop uses all available space. */
 export const DEVICE_WIDTHS = { desktop: null, tablet: 768, mobile: 390 };
 
-/** Preview frames narrower than this use the one-column flow. */
 const FLOW_BREAKPOINT = 640;
 const FLOW_GAP = 12;
 
 export function createCanvas({ viewport, stage, canvas, message, store }) {
-  /** id -> { node, kind, item, body?, content? } */
   const nodes = new Map();
   let scale = 1;
   let fitScale = 1;
@@ -33,16 +18,13 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
   let selectedId = null;
   const layoutListeners = new Set();
 
-  // Shown on an empty dashboard.
   const emptyHint = h('div', { class: 'empty-hint', hidden: true },
     h('strong', {}, 'This dashboard is empty'),
     h('span', {}, 'Add a section, or drag a ready-made layout from the Add panel.'));
   stage.append(emptyHint);
 
-  // Select on pointerdown so it also works when drag is added on top.
   viewport.addEventListener('pointerdown', (event) => {
     const { mode } = store.getState();
-    // Floating editor UI (e.g. the text toolbar) lives in the viewport but isn't canvas content.
     if (mode !== 'edit' || event.button !== 0 || event.target.closest('[data-ui]')) return;
     const target = event.target.closest('.element, .section');
     store.dispatch({
@@ -98,7 +80,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
     }
   }
 
-  /** Scales (or flows) the canvas for the current viewport, device and zoom. */
   function layout(state) {
     const d = state.dashboard;
     if (!d) return;
@@ -120,7 +101,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
         ? Math.max(contentBottom + CANVAS_PADDING_BOTTOM, (viewport.clientHeight - 48) / scale)
         : contentBottom + 24;
 
-      // Keep the middle of the view in place when zooming.
       const centre = previous !== scale ? {
         x: (viewport.scrollLeft + viewport.clientWidth / 2) / previous,
         y: (viewport.scrollTop + viewport.clientHeight / 2) / previous,
@@ -129,7 +109,7 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
       canvas.style.width = `${d.canvasWidth}px`;
       canvas.style.height = `${height}px`;
       canvas.style.transform = `scale(${scale})`;
-      canvas.style.setProperty('--scale', String(scale)); // keeps handles a constant on-screen size
+      canvas.style.setProperty('--scale', String(scale));
       stage.style.width = `${d.canvasWidth * scale}px`;
       stage.style.height = `${height * scale}px`;
 
@@ -141,7 +121,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
     layoutListeners.forEach((fn) => fn({ scale, fitScale, flowing }));
   }
 
-  /** One column: sections in reading order, each element full width beneath the previous one. */
   function flow(d, frame) {
     flowing = true;
     scale = 1;
@@ -171,11 +150,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
     stage.style.height = `${y}px`;
   }
 
-  /**
-   * Size of an element in the flow. Images keep their designed size (shrinking
-   * only to fit) and shape; charts and text use the full width; charts get a
-   * readable height and text is as tall as its words.
-   */
   function flowSize(rec, element, inner) {
     if (element.type === 'image') {
       const width = Math.min(element.width, inner);
@@ -203,12 +177,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
     stage.hidden = Boolean(text) && !state.dashboard;
   }
 
-  /*
-   * Each item's look (fill, radius, border, shadow, opacity) is drawn by a
-   * "skin" layer inside it rather than by the node itself, so the selection
-   * outline, tag and handles stay crisp on a faded or rounded item.
-   */
-
   function createSection(section) {
     const skin = h('div', { class: 'skin' });
     const content = h('div', { class: 'section-content' });
@@ -227,7 +195,6 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
     if (rec.item?.style !== s.style) {
       paintSkin(rec.skin, s.style);
       rec.content.style.opacity = String(s.style.opacity / 100);
-      // Charts without a fill paint this behind themselves, so a chart stacked on top of another hides it.
       rec.node.style.setProperty('--section-bg', s.style.fill.type === 'solid' ? s.style.fill.color : 'transparent');
     }
     rec.item = s;
@@ -274,26 +241,18 @@ export function createCanvas({ viewport, stage, canvas, message, store }) {
   return {
     render,
     getScale: () => scale,
-    /** Called after every layout with { scale, fitScale, flowing }. */
     onLayout: (fn) => layoutListeners.add(fn),
     nodeFor: (id) => nodes.get(id)?.node ?? null,
-    /** Client (screen) coordinates to canvas units. */
     toCanvasPoint(client) {
       const rect = canvas.getBoundingClientRect();
       return { x: (client.x - rect.left) / scale, y: (client.y - rect.top) / scale };
     },
-    /** Scrolls a section or element into view. */
     reveal(id) {
       nodes.get(id)?.node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     },
   };
 }
 
-/**
- * Items as a reader would take them: top to bottom by row, left to right
- * within a row. Items whose vertical extents overlap by at least half the
- * shorter one share a row, so a logo beside a heading comes before it.
- */
 function readingOrder(items) {
   const rows = [];
   for (const item of [...items].sort((a, b) => a.y - b.y)) {
@@ -312,7 +271,6 @@ function readingOrder(items) {
   return rows.flatMap((r) => r.items.sort((a, b) => a.x - b.x));
 }
 
-/** Resize handles; only visible on the selected item. */
 function handles(kind) {
   return h('div', { class: 'handles' },
     HANDLE_EDGES.map((edge) => h('div', { class: `handle handle-${kind} handle-${edge}`, dataset: { edge } })));

@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/**
- * Generates dummy time-series data for charts with `dataSource: "api"`.
- *
- * Each point depends only on the metric and its date (or 5-second slot for
- * "live"), so reloading gives the same history while new points appear as
- * time moves on. That's what makes the live chart scroll instead of jump.
- */
 final class Metrics
 {
     public const DEFINITIONS = [
@@ -24,7 +17,6 @@ final class Metrics
 
     private const LIVE_STEP_SECONDS = 5;
 
-    /** @return array{labels: list<string>, timestamps: list<int>, values: list<int|float>} */
     public static function series(string $metric, string $granularity, int $points, ?int $now = null): array
     {
         $def = self::DEFINITIONS[$metric];
@@ -54,7 +46,7 @@ final class Metrics
                     $label = $date->format('M j');
                     $time = $date->getTimestamp();
                     break;
-                default: // live
+                default:
                     $step = intdiv($now, self::LIVE_STEP_SECONDS) - $back;
                     $shape = 1 + 0.12 * sin($step / 5) + 0.06 * sin($step / 13);
                     $time = $step * self::LIVE_STEP_SECONDS;
@@ -70,7 +62,6 @@ final class Metrics
         return ['labels' => $labels, 'timestamps' => $timestamps, 'values' => $values];
     }
 
-    /** A repeatable pseudo-random number from -1 to 1 for the given key. */
     private static function noise(string $key): float
     {
         return crc32($key) / 0xFFFFFFFF * 2 - 1;

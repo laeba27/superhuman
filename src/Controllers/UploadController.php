@@ -10,7 +10,6 @@ use App\Response;
 
 final class UploadController
 {
-    /** Detected MIME type => extension we save the file with. */
     private const TYPES = [
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
@@ -23,7 +22,6 @@ final class UploadController
         private readonly array $config,
     ) {}
 
-    /** POST /api/uploads  multipart/form-data with an "image" field */
     public function store(): void
     {
         $file = $_FILES['image'] ?? null;
@@ -42,7 +40,6 @@ final class UploadController
             throw new HttpException(413, "Images must be $maxMb MB or smaller.");
         }
 
-        // Trust the file's contents, not its name or the browser's Content-Type.
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
         $extension = self::TYPES[$mime] ?? throw new HttpException(415, 'Only PNG, JPEG, GIF and WebP images are allowed.');
         $dimensions = @getimagesize($file['tmp_name']);

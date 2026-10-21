@@ -4,19 +4,13 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/**
- * Cleans rich text HTML from the text editor against an allowlist, so no
- * scripts, event handlers or links can be saved and shown to other users.
- */
 final class HtmlSanitizer
 {
-    /** Kept, with only a cleaned `style` attribute. */
     private const ALLOWED_TAGS = [
         'p', 'div', 'br', 'span', 'b', 'strong', 'i', 'em', 'u', 's',
         'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote',
     ];
 
-    /** Removed together with everything inside them. Other unknown tags are unwrapped, keeping their text. */
     private const REMOVED_TAGS = [
         'script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template', 'svg', 'math',
         'form', 'input', 'textarea', 'select', 'button', 'link', 'meta', 'base', 'head', 'title',
@@ -36,7 +30,6 @@ final class HtmlSanitizer
 
         $doc = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
-        // The xml encoding hint makes libxml read the input as UTF-8.
         $doc->loadHTML(
             '<?xml encoding="utf-8"?><div>' . $html . '</div>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET,
@@ -64,7 +57,7 @@ final class HtmlSanitizer
                 continue;
             }
             if (!$node instanceof \DOMElement) {
-                $parent->removeChild($node); // comments, CDATA, processing instructions
+                $parent->removeChild($node);
                 continue;
             }
 

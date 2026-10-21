@@ -25,7 +25,6 @@ def multipart(field, filename, content, ctype="application/octet-stream"):
     body = (f"--{b}\r\nContent-Disposition: form-data; name=\"{field}\"; filename=\"{filename}\"\r\nContent-Type: {ctype}\r\n\r\n").encode() + content + f"\r\n--{b}--\r\n".encode()
     return body, {"Content-Type": f"multipart/form-data; boundary={b}"}
 
-# list + show
 s, j, _ = req("GET", "/dashboards")
 check("list dashboards", s == 200 and j["data"][0]["sectionCount"] == 3 and j["data"][0]["elementCount"] == 4, json.dumps(j["data"][0]))
 s, j, _ = req("GET", f"/dashboards/{D}")
@@ -33,7 +32,6 @@ layout = j["data"]
 check("show dashboard tree", s == 200 and [len(x["elements"]) for x in layout["sections"]] == [2, 1, 1])
 check("empty JSON objects stay objects", isinstance(layout["sections"][1]["elements"][0]["content"]["labels"], list) and isinstance(layout["settings"], dict))
 
-# round trip
 v = layout["version"]
 s, j, _ = req("PUT", f"/dashboards/{D}", layout)
 check("round-trip save of loaded layout", s == 200 and j["data"]["version"] == v + 1, f"{s} {j.get('error') if isinstance(j, dict) else ''}")
@@ -44,7 +42,6 @@ check("content unchanged after round trip", same)
 s, j, _ = req("PUT", f"/dashboards/{D}", layout)
 check("stale version -> 409", s == 409 and j["error"]["currentVersion"] == v + 1, json.dumps(j.get("error")))
 
-# move element between sections + add new element + reorder
 l2 = copy.deepcopy(saved)
 moved = l2["sections"][0]["elements"].pop(1)
 l2["sections"][2]["elements"].append(moved)
@@ -56,7 +53,6 @@ check("move element between sections + new empty image + reorder", s == 200 and 
       f"{s} {j.get('error') if s != 200 else ''}")
 cur = j["data"]
 
-# xss
 l3 = copy.deepcopy(cur)
 txt = next(e for sec in l3["sections"] for e in sec["elements"] if e["type"] == "text")
 txt["content"]["html"] = '<p onclick="x()" style="font-size: 20px; background-image: url(evil); color: #f00">Hi <b>bold</b> <script>alert(1)</script><a href="javascript:x">link</a> <img src=x onerror=alert(1)><!-- c --> café ✓</p><font size="5">big</font>'
@@ -68,7 +64,6 @@ check("sanitizer strips script/handlers/url()/img/a, keeps formatting + UTF-8",
       and "<b>bold</b>" in html and "font-size: 20px" in html and "café ✓" in html and "big" in html)
 cur = j["data"]
 
-# validation errors
 bad = {"name": "", "version": cur["version"], "sections": [{"id": "bad", "x": -5, "y": 0, "width": 5, "height": 100, "style": {"background": "red; x"},
        "elements": [{"id": "bad", "type": "video", "x": 0, "y": 0, "width": 50, "height": 50},
                     {"id": str(uuid.uuid4()), "type": "chart", "x": 0, "y": 0, "width": 50, "height": 50, "content": {"dataSource": "api", "metric": "nope", "refreshSec": 1}},
@@ -84,7 +79,6 @@ check("duplicate ids -> 422", s == 422, json.dumps(j["error"]["errors"]))
 s, _, _ = req("GET", f"/dashboards/{D}")
 check("failed saves left data untouched", req("GET", f"/dashboards/{D}")[1]["data"]["version"] == cur["version"])
 
-# styles: new keys round-trip, old keys are converted, bad values are listed
 cur = req("GET", f"/dashboards/{D}")[1]["data"]
 st = copy.deepcopy(cur)
 glow = {"fill": {"type": "linear", "from": "#6d5dfc", "to": "#c86dd7", "angle": 135}, "opacity": 90, "radius": 24, "border": {"width": 2, "color": "#ffffff"}, "shadow": "glow"}
@@ -104,7 +98,6 @@ s, j, _ = req("PUT", f"/dashboards/{D}", bad)
 fields = {e["field"] for e in j["error"]["errors"]} if s == 422 else set()
 check("bad style values -> 422 with each field", {f"sections[0].style.{k}" for k in ["fill.type", "opacity", "radius", "border.width", "border.color", "shadow"]} <= fields, str(sorted(fields)))
 
-# create, cross-dashboard id collision, delete
 s, j, _ = req("POST", "/dashboards", {"name": "Test board"})
 new = j["data"]["id"]
 check("create dashboard", s == 201 and j["data"]["sections"] == [] and j["data"]["version"] == 1)
@@ -116,7 +109,6 @@ check("id owned by another dashboard -> 422", s == 422, j["error"]["message"])
 s, _, _ = req("DELETE", f"/dashboards/{new}")
 check("delete -> 204, then 404", s == 204 and req("GET", f"/dashboards/{new}")[0] == 404)
 
-# routing / errors
 check("bad id -> 404", req("GET", "/dashboards/nope")[0] == 404)
 check("unknown route -> 404", req("GET", "/nothing")[0] == 404)
 s, _, h = req("PATCH", "/dashboards")
@@ -124,7 +116,6 @@ check("wrong method -> 405 + Allow", s == 405 and "GET" in h.get("Allow", ""))
 s, j, _ = req("PUT", f"/dashboards/{D}", raw=b"{oops", headers={"Content-Type": "application/json"})
 check("malformed JSON -> 400", s == 400, j["error"]["message"])
 
-# chart data
 for g in ["live", "month", "day"]:
     s, j, _ = req("GET", f"/chart-data?metric=revenue&granularity={g}&points=5")
     check(f"chart-data {g}", s == 200 and len(j["data"]["labels"]) == 5 and len(j["data"]["timestamps"]) == 5 and len(j["data"]["datasets"][0]["data"]) == 5, f'{j["data"]["labels"]} {j["data"]["datasets"][0]["data"]}')
@@ -137,7 +128,6 @@ check("bad metric -> 422", req("GET", "/chart-data?metric=nope")[0] == 422)
 check("bad points -> 422", req("GET", "/chart-data?metric=revenue&points=999")[0] == 422)
 check("metrics list", len(req("GET", "/chart-data/metrics")[1]["data"]["metrics"]) == 4)
 
-# uploads
 def png(w, h):
     c = lambda t, x: struct.pack(">I", len(x)) + t + x + struct.pack(">I", zlib.crc32(t + x))
     raw = b"".join(b"\x00" + b"\x25\x63\xeb" * w for _ in range(h))

@@ -1,5 +1,3 @@
-/** Modal shown when a save hits a newer version on the server (HTTP 409). */
-
 import { h, icon } from '../utils.js';
 
 export function createConflictDialog(store, saver) {
@@ -25,8 +23,6 @@ export function createConflictDialog(store, saver) {
     await saver.keepMine();
   });
 
-  // Closing with Escape leaves the conflict unresolved; autosave stays paused
-  // and the save status in the top bar reopens the dialog.
   store.subscribe((state, prev) => {
     if (state.saveStatus === 'conflict' && prev.saveStatus !== 'conflict') open(state);
     if (state.saveStatus !== 'conflict' && dialog.open) dialog.close();

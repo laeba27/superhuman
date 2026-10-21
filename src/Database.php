@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App;
 
-/** Opens the MySQL connection the first time it's needed. */
 final class Database
 {
     private ?\PDO $pdo = null;
@@ -29,7 +28,6 @@ final class Database
             error_log('Database connection failed: ' . $e->getMessage());
             throw new HttpException(503, 'Could not connect to the database. Check the DB_* settings in .env.');
         }
-        // Store and return timestamps in UTC.
         $this->pdo->exec("SET time_zone = '+00:00'");
 
         return $this->pdo;

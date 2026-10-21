@@ -1,9 +1,7 @@
-# Send every /api/* request to the API entry point.
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
 
-# Allow 5 MB image uploads when PHP runs as an Apache module.
 <IfModule mod_php.c>
   php_value upload_max_filesize 6M
   php_value post_max_size 8M

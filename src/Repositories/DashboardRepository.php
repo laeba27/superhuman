@@ -36,7 +36,6 @@ final class DashboardRepository
         ], $rows);
     }
 
-    /** The full layout tree: dashboard → sections → elements. */
     public function find(string $id): ?array
     {
         $pdo = $this->db->pdo();
@@ -98,10 +97,6 @@ final class DashboardRepository
         return $this->find($id);
     }
 
-    /**
-     * Replaces the dashboard's sections and elements with $layout in one
-     * transaction. Fails with 409 if someone saved a newer version first.
-     */
     public function saveLayout(string $id, array $layout): array
     {
         $pdo = $this->db->pdo();
@@ -124,7 +119,6 @@ final class DashboardRepository
             $pdo->prepare('UPDATE dashboards SET name = ?, settings = ?, version = version + 1 WHERE id = ?')
                 ->execute([$layout['name'], self::encode($layout['settings']), $id]);
 
-            // Elements go with their sections (ON DELETE CASCADE).
             $pdo->prepare('DELETE FROM sections WHERE dashboard_id = ?')->execute([$id]);
 
             $insertSection = $pdo->prepare(
@@ -153,7 +147,6 @@ final class DashboardRepository
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            // 23000 = an id already belongs to another dashboard.
             if ($e instanceof \PDOException && $e->getCode() === '23000') {
                 throw new HttpException(422, 'A section or element id is already used by another dashboard.');
             }
@@ -181,7 +174,6 @@ final class DashboardRepository
         ];
     }
 
-    /** Decodes to objects (not arrays) so an empty `{}` stays `{}` in the response. */
     private static function decode(string $json): mixed
     {
         return json_decode($json, false, 512, JSON_THROW_ON_ERROR);

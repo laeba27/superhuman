@@ -1,4 +1,3 @@
-// Minimal Chrome DevTools Protocol client over --remote-debugging-pipe (Node 20, no deps).
 const { spawn } = require('child_process');
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
@@ -33,7 +32,6 @@ exports.launch = async function launch({ profile, width = 1440, height = 900 }) 
   const first = await attach(targetInfos.find((t) => t.type === 'page').targetId);
   return {
     ...first,
-    /** Opens another tab in the same browser (shares storage and BroadcastChannel). */
     async newPage(url = 'about:blank') {
       const { targetId } = await send('Target.createTarget', { url });
       return attach(targetId);

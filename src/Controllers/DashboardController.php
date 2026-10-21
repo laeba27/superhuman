@@ -18,13 +18,11 @@ final class DashboardController
         private readonly Validator $validator,
     ) {}
 
-    /** GET /api/dashboards */
     public function index(): void
     {
         Response::json(['data' => $this->dashboards->all()]);
     }
 
-    /** GET /api/dashboards/{id} */
     public function show(array $params): void
     {
         $dashboard = $this->dashboards->find($this->checkId($params['id']));
@@ -34,7 +32,6 @@ final class DashboardController
         Response::json(['data' => $dashboard]);
     }
 
-    /** POST /api/dashboards  {name?} */
     public function store(): void
     {
         $body = Request::json();
@@ -42,7 +39,6 @@ final class DashboardController
         Response::json(['data' => $this->dashboards->create($name)], 201);
     }
 
-    /** PUT /api/dashboards/{id}  {name, version, settings, sections[]} */
     public function update(array $params): void
     {
         $id = $this->checkId($params['id']);
@@ -50,7 +46,6 @@ final class DashboardController
         Response::json(['data' => $this->dashboards->saveLayout($id, $layout)]);
     }
 
-    /** DELETE /api/dashboards/{id} */
     public function destroy(array $params): void
     {
         if (!$this->dashboards->delete($this->checkId($params['id']))) {

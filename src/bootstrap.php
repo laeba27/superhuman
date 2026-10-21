@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-// Loads classes from src/ (App\Foo\Bar => src/Foo/Bar.php), reads .env,
-// and returns the config array.
-
 spl_autoload_register(static function (string $class): void {
     $prefix = 'App\\';
     if (!str_starts_with($class, $prefix)) {
@@ -26,7 +23,6 @@ spl_autoload_register(static function (string $class): void {
             continue;
         }
         [$key, $value] = array_map('trim', explode('=', $line, 2));
-        // Real environment variables win over .env.
         if (getenv($key) === false) {
             putenv($key . '=' . trim($value, "\"'"));
         }

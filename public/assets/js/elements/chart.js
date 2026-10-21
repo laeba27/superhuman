@@ -1,15 +1,6 @@
-/**
- * Bar and line charts drawn with Chart.js (loaded globally as `Chart`).
- *
- * `dataSource: "static"` draws the labels/datasets stored in the element.
- * `dataSource: "api"` fetches /api/chart-data and, if refreshSec > 0, keeps
- * fetching so the chart updates live.
- */
-
 import { api } from '../api.js';
 import { formatValue, h } from '../utils.js';
 
-// Categorical series colors in fixed order (validated light palette).
 export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
 const INK = {
   primary: '#0b0b0b',
@@ -21,7 +12,6 @@ const INK = {
 
 const liveTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-/** Per-chart runtime state, keyed by the element's body node. */
 const states = new WeakMap();
 let defaultsApplied = false;
 
@@ -99,7 +89,6 @@ function apply(state, content) {
   if (content.dataSource === 'api') {
     const key = [content.metric, content.granularity, content.points, content.refreshSec].join('|');
     if (key !== state.requestKey) {
-      // Keep showing the previous data until the new response arrives, so the chart doesn't blank.
       state.requestKey = key;
       startPolling(state);
     }
@@ -133,8 +122,6 @@ function draw(state) {
   state.chart.update();
 }
 
-// ---- Live data ---------------------------------------------------------------
-
 function startPolling(state) {
   stopPolling(state);
   const { metric, granularity, points, refreshSec } = state.content;
@@ -142,7 +129,6 @@ function startPolling(state) {
   let first = true;
 
   const load = async () => {
-    // Don't poll while the tab is in the background (but always load once).
     if (!first && document.hidden) return;
     if (first) setStatus(state, 'Loading…');
     first = false;
@@ -174,8 +160,6 @@ function setStatus(state, text, isError = false) {
   state.status.hidden = !text;
   state.status.classList.toggle('is-error', isError);
 }
-
-// ---- Chart.js config -----------------------------------------------------------
 
 function buildConfig(content, data) {
   const type = content.chartType;
@@ -232,7 +216,6 @@ function buildConfig(content, data) {
           font: { size: 14, weight: '600' },
           padding: { top: 2, bottom: 12 },
         },
-        // A single series is named by the title; a legend box would repeat it.
         legend: {
           display: content.showLegend && count >= 2,
           position: 'top',
@@ -266,7 +249,7 @@ function buildConfig(content, data) {
           ticks: { color: INK.muted, maxRotation: 0, autoSkip: true, autoSkipPadding: 12 },
         },
         y: {
-          beginAtZero: type === 'bar', // bars must grow from zero; lines may zoom in
+          beginAtZero: type === 'bar',
           grid: { color: INK.grid },
           border: { display: false },
           ticks: { color: INK.muted, maxTicksLimit: 5, callback: (v) => formatValue(v, unit, { short: true }) },

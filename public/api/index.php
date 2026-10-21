@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-// Single entry point for every /api/* request.
-
 use App\Controllers\ChartDataController;
 use App\Controllers\DashboardController;
 use App\Controllers\UploadController;

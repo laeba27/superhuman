@@ -1,10 +1,3 @@
-/**
- * Right panel: settings for the selection, or for the dashboard when nothing
- * is selected. The form is rebuilt only when the selection (or the shape of
- * its content, e.g. the number of chart rows) changes; on other updates each
- * field just refreshes its value.
- */
-
 import { registry } from '../elements/index.js';
 import { findItem } from '../store.js';
 import { MAX_RADIUS, PRESET_FILLS, SHADOW_NAMES, fillCss } from '../styles.js';
@@ -19,8 +12,8 @@ export function createPropertiesPanel(root, store, actions) {
   const { commands } = actions;
   let renderedKey = null;
   let fields = [];
-  let tab = loadPref('propertiesTab', 'content'); // for elements: 'content' | 'style'
-  let aspect = null; // { id, ratio } while the W/H lock is on
+  let tab = loadPref('propertiesTab', 'content');
+  let aspect = null;
   const kit = createFieldKit(store, (f) => fields.push(f));
 
   store.subscribe(render);
@@ -43,7 +36,6 @@ export function createPropertiesPanel(root, store, actions) {
     if (!sel) return `dashboard:${state.dashboard.id}`;
     const found = findItem(state.dashboard, sel.id);
     if (!found) return 'none';
-    // The section count is in the key because the element form lists the sections.
     return `${sel.kind}:${sel.id}:${structureKey(found.item)}:${styleKey(found.item.style)}:${tab}:${state.dashboard.sections.length}`;
   }
 
@@ -55,8 +47,6 @@ export function createPropertiesPanel(root, store, actions) {
     if (!found) return [];
     return found.kind === 'section' ? sectionForm(found.item) : elementForm(found.item);
   }
-
-  // ---- Forms -------------------------------------------------------------------
 
   function dashboardForm(d) {
     const settings = (s) => s.dashboard.settings;
@@ -114,7 +104,6 @@ export function createPropertiesPanel(root, store, actions) {
     ];
   }
 
-  /** Bring to front / forward / backward / send to back, plus the raw stack number. */
   function layer(id) {
     const ops = [
       ['back', 'toBack', 'Send to back', shortcut('[', { alt: true })],
@@ -137,8 +126,6 @@ export function createPropertiesPanel(root, store, actions) {
         { min: 0, max: 10000 })));
   }
 
-  // ---- Design (Figma order: align, layout, appearance, fill, border, shadow) ----------
-
   function design(id) {
     return [alignBar(id), layout(id), appearance(id), fillGroup(id), borderGroup(id), shadowGroup(id)];
   }
@@ -148,10 +135,6 @@ export function createPropertiesPanel(root, store, actions) {
   const setStyle = (id, changes, coalesce = null) =>
     store.dispatch({ type: 'item/update', id, changes: { style: changes }, coalesce });
 
-  /**
-   * Aligns the item to an edge or the middle of its parent: the section for
-   * an element, the canvas for a section (which has no vertical bounds).
-   */
   function alignBar(id) {
     const ops = [
       ['left', 'alignLeft', 'Align left'], ['center', 'alignCenter', 'Align horizontal centres'], ['right', 'alignRight', 'Align right'],
@@ -179,7 +162,6 @@ export function createPropertiesPanel(root, store, actions) {
     }, icon(iconName))));
   }
 
-  /** X, Y, W, H, with a lock that keeps the width-to-height ratio. */
   function layout(id) {
     const locked = () => aspect?.id === id;
     const setSize = (key) => (value) => {
@@ -229,8 +211,6 @@ export function createPropertiesPanel(root, store, actions) {
       const current = fill(store.getState());
       if (current.type === type) return;
       if (type === 'none') setStyle(id, { fill: { type } });
-      // Keep the colour the user had: a gradient starts from it (unless it's plain white),
-      // a solid takes the gradient's first stop.
       if (type === 'solid') setStyle(id, { fill: { type, color: current.type === 'linear' ? current.from : '#ffffff' } });
       if (type === 'linear') {
         const keep = current.type === 'solid' && !/^#(fff|ffffff)$/i.test(current.color);
@@ -313,7 +293,6 @@ export function createPropertiesPanel(root, store, actions) {
   }
 }
 
-/** Style changes that add or remove fields, so the form is rebuilt. */
 function styleKey(style) {
   return style ? `${style.fill.type}:${style.border.width > 0}:${style.shadow !== 'none'}` : '';
 }

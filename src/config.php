@@ -15,7 +15,6 @@ return [
     ],
     'uploads' => [
         'dir' => dirname(__DIR__) . '/public/uploads',
-        // Relative to public/index.html, so the app works from any sub-folder.
         'url_prefix' => 'uploads/',
         'max_bytes' => 5 * 1024 * 1024,
     ],

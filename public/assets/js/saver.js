@@ -1,11 +1,3 @@
-/**
- * Saving: autosave after edits, retry when the network or server fails,
- * conflict detection (409) and keeping other tabs in sync.
- *
- * Only one save runs at a time. Edits made while it runs are saved right
- * after it finishes, so the server always ends up with the latest layout.
- */
-
 import { api } from './api.js';
 import { toast } from './utils.js';
 
@@ -22,7 +14,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
 
   store.subscribe((state, prev) => {
     if (state.dashboard?.id !== prev.dashboard?.id) {
-      // Another dashboard (or none) was opened: drop timers meant for the old one.
       cancel();
       attempt = 0;
       return;
@@ -43,7 +34,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
     timer = retryTimer = null;
   }
 
-  /** Saves now. Resolves true once the server has the current layout. */
   async function save() {
     clearTimeout(timer);
     timer = null;
@@ -74,12 +64,10 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
     const ok = await inFlight;
     inFlight = null;
 
-    // Edits made while the request was running get the normal autosave delay.
     if (ok && store.getState().dirty && canAutosave(store.getState())) schedule(AUTOSAVE_DELAY);
     return ok;
   }
 
-  /** Saves until nothing is pending (used before leaving a dashboard). */
   async function flush() {
     let ok = await save();
     while (ok && store.getState().dirty) ok = await save();
@@ -91,7 +79,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
       store.dispatch({ type: 'save/conflict', id, version: error.details.currentVersion, message: error.message });
       return;
     }
-    // Network down (0) or a server-side failure: worth trying again.
     if (error.status === 0 || error.status >= 500) {
       const delay = RETRY_DELAYS[Math.min(attempt, RETRY_DELAYS.length - 1)];
       attempt += 1;
@@ -100,20 +87,15 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
       retryTimer = setTimeout(() => save(), delay);
       return;
     }
-    // Anything else (e.g. 422) won't fix itself by retrying.
     store.dispatch({ type: 'save/error', id, message: error.message });
     const fields = error.details?.errors?.map((e) => `${e.field} ${e.message}`).slice(0, 3).join('; ');
     toast(fields ? `${error.message} ${fields}` : error.message, { error: true, timeout: 7000 });
   }
 
-  // Back online: don't wait for the next retry.
   window.addEventListener('online', () => {
     if (store.getState().saveStatus === 'retrying') save();
   });
 
-  // ---- Conflicts ----------------------------------------------------------------
-
-  /** Throws away local changes and loads the newer version from the server. */
   async function loadLatest() {
     const { dashboard } = store.getState();
     if (!dashboard) return;
@@ -126,15 +108,12 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
     }
   }
 
-  /** Saves local changes over the newer version on the server. */
   function keepMine() {
     const { dashboard } = store.getState();
     if (!dashboard) return Promise.resolve(false);
     store.dispatch({ type: 'save/keep-mine', id: dashboard.id });
     return save();
   }
-
-  // ---- Other tabs ------------------------------------------------------------------
 
   channel?.addEventListener('message', async ({ data }) => {
     const state = store.getState();
@@ -145,7 +124,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
       return;
     }
     if (data.type === 'saved' && data.version > state.dashboard.version) {
-      // With unsaved edits here, the next save reports the conflict instead.
       if (state.dirty || state.saveStatus === 'saving') return;
       try {
         const latest = await api.getDashboard(data.id);
@@ -154,7 +132,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
         store.dispatch({ type: 'dashboard/loaded', dashboard: latest, keepSelection: true });
         toast('Updated with changes from another tab.', { timeout: 2500 });
       } catch {
-        // The next save will surface any problem.
       }
     }
   });
@@ -163,7 +140,6 @@ export function createSaver(store, { onSaved, onRemoteDelete } = {}) {
     save,
     loadLatest,
     keepMine,
-    /** Saves pending changes before leaving the dashboard. Resolves false if they couldn't be saved. */
     flush,
     announceDelete: (id) => channel?.postMessage({ type: 'deleted', id }),
     isBusy: () => Boolean(inFlight) || Boolean(timer),

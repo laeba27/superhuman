@@ -1,25 +1,18 @@
-/**
- * Editing commands shared by keyboard shortcuts, the context menu and the
- * properties panel: duplicate, copy/cut/paste, layer order, move, delete.
- */
-
 import { registry } from './elements/index.js';
 import { findItem, stackPosition } from './store.js';
 import { toast, uuid } from './utils.js';
 
-const OFFSET = 16;      // a copy sits this far down-right of its original
+const OFFSET = 16;
 const SECTION_GAP = 24;
 
 export function createCommands(store, canvas) {
-  /** In-memory clipboard; survives switching dashboards in the same tab. */
-  let clipboard = null; // { kind: 'section' | 'element', item }
+  let clipboard = null;
 
   const state = () => store.getState();
   const canEdit = () => Boolean(state().dashboard) && state().mode === 'edit';
   const selected = () => state().selection?.id ?? null;
   const find = (id) => findItem(state().dashboard, id);
 
-  /** A copy of an item with fresh ids (and fresh ids for a section's elements). */
   function withNewIds(kind, item) {
     const copy = structuredClone(item);
     copy.id = uuid();
@@ -68,7 +61,6 @@ export function createCommands(store, canvas) {
       store.dispatch({ type: 'item/remove', id });
     },
 
-    /** Pastes into the selected section (or the selected element's section), else the last one. */
     paste() {
       if (!clipboard || !canEdit()) return;
       const d = state().dashboard;
@@ -86,7 +78,6 @@ export function createCommands(store, canvas) {
         toast('Add a section first, then paste into it.', { error: true });
         return;
       }
-      // Don't land exactly on top of something already there.
       while (section.elements.some((e) => e.x === item.x && e.y === item.y)) {
         item.x += OFFSET;
         item.y += OFFSET;
@@ -94,12 +85,10 @@ export function createCommands(store, canvas) {
       insert('element', item, { sectionId: section.id, afterId: found?.kind === 'element' ? found.item.id : null });
     },
 
-    /** op: 'front' | 'forward' | 'backward' | 'back' */
     layer(op, id = selected()) {
       if (find(id) && canEdit()) store.dispatch({ type: 'item/layer', id, op });
     },
 
-    /** Whether a layer move would change anything (for disabling buttons). */
     canLayer(op, id = selected()) {
       const pos = stackPosition(state().dashboard, id);
       if (!pos || pos.count < 2) return false;
@@ -121,7 +110,6 @@ export function createCommands(store, canvas) {
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
 
-/** Shortcut label for menus and tooltips, e.g. shortcut('D') -> "⌘D" or "Ctrl+D". */
 export function shortcut(key, { alt = false } = {}) {
   if (isMac) return `${alt ? '⌥' : ''}⌘${key}`;
   return `Ctrl+${alt ? 'Alt+' : ''}${key}`;

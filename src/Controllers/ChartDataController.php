@@ -11,7 +11,6 @@ use App\Support\Metrics;
 
 final class ChartDataController
 {
-    /** GET /api/chart-data/metrics — the metrics a chart can pick from */
     public function metrics(): void
     {
         $metrics = [];
@@ -24,7 +23,6 @@ final class ChartDataController
         ]]);
     }
 
-    /** GET /api/chart-data?metric=revenue&granularity=month|day|live&points=12 */
     public function show(): void
     {
         $metric = Request::query('metric') ?? '';
@@ -53,7 +51,6 @@ final class ChartDataController
             'unit' => $def['unit'],
             'granularity' => $granularity,
             'labels' => $series['labels'],
-            // Unix seconds, so the browser can format labels in local time.
             'timestamps' => $series['timestamps'],
             'datasets' => [['label' => $def['label'], 'data' => $series['values']]],
             'generatedAt' => gmdate('Y-m-d\TH:i:s\Z'),

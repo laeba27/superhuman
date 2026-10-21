@@ -1,5 +1,3 @@
-/** Bottom bar: where the selection sits (Dashboard › Section › Element). Click a crumb to select it. */
-
 import { registry } from '../elements/index.js';
 import { findItem } from '../store.js';
 import { h, icon } from '../utils.js';

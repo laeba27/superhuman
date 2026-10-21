@@ -1,8 +1,3 @@
-/**
- * Image uploads: the file picker, dropping image files onto the canvas, and
- * double-clicking an image to replace it.
- */
-
 import { api } from './api.js';
 import { registry } from './elements/index.js';
 import { sectionAt } from './interactions.js';
@@ -34,7 +29,6 @@ export function createUploads({ viewport, store, canvas }) {
     return api.uploadImage(file);
   }
 
-  /** Uploads a file into an existing image element. */
   async function replace(id, file) {
     canvas.nodeFor(id)?.classList.add('is-uploading');
     try {
@@ -42,7 +36,6 @@ export function createUploads({ viewport, store, canvas }) {
       const found = findItem(store.getState().dashboard, id);
       if (!found) return;
       const changes = { content: { src: result.url, alt: found.item.content.alt || altFromName(file.name) } };
-      // A first image takes its own shape rather than the placeholder's.
       if (!found.item.content.src) changes.height = Math.round((found.item.width * result.height) / result.width);
       store.dispatch({ type: 'item/update', id, changes });
     } catch (error) {
@@ -52,7 +45,6 @@ export function createUploads({ viewport, store, canvas }) {
     }
   }
 
-  /** Uploads a file and places it as a new image element centred on a canvas point. */
   async function addAt(file, point) {
     const d = store.getState().dashboard;
     const section = sectionAt(d, point) ?? d.sections[d.sections.length - 1];
@@ -82,8 +74,6 @@ export function createUploads({ viewport, store, canvas }) {
       toast(error.message, { error: true });
     }
   }
-
-  // ---- Drag and drop files ------------------------------------------------------
 
   const hasFiles = (event) => event.dataTransfer?.types.includes('Files');
   let highlighted = null;
@@ -116,8 +106,6 @@ export function createUploads({ viewport, store, canvas }) {
     if (imageNode) replace(imageNode.dataset.id, file);
     else addAt(file, canvas.toCanvasPoint({ x: event.clientX, y: event.clientY }));
   });
-
-  // ---- Shortcuts on the canvas ----------------------------------------------------
 
   viewport.addEventListener('dblclick', (event) => {
     const node = event.target.closest('.element-image');

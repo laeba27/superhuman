@@ -39,9 +39,8 @@ function tools(page, errors, label) {
   const errors = [];
   const A = tools(b, errors, 'A');
 
-  // Count and control PUT requests in tab A.
   let puts = 0;
-  let intercept = null; // async (params) => void, must continue/fail/fulfill the request
+  let intercept = null;
   b.on((m) => {
     if (m.method === 'Network.requestWillBeSent' && m.params.request.method === 'PUT') puts++;
     if (m.method === 'Fetch.requestPaused') {
@@ -55,7 +54,6 @@ function tools(page, errors, label) {
   check('tab A loads', await A.open());
   await A.click(`[data-id="${LOGO}"]`);
 
-  // ---- Autosave + debounce
   puts = 0;
   for (let i = 0; i < 5; i++) { await A.nudge(); await sleep(200); }
   check('edits show "Unsaved changes" first', (await A.status()) === 'Unsaved changes');
@@ -63,7 +61,6 @@ function tools(page, errors, label) {
   check('five quick edits -> one request', puts === 1, puts);
   check('server has the edit', (await serverLogoX()) === 29, await serverLogoX());
 
-  // ---- Edit during an in-flight save -> saved afterwards
   let release;
   intercept = (p) => { release = () => b.s('Fetch.continueRequest', { requestId: p.requestId }); };
   await A.nudge();
@@ -73,7 +70,6 @@ function tools(page, errors, label) {
   release();
   check('edits made during a save are saved after it', await A.waitFor(`document.querySelector('.save-status').textContent === 'Saved'`, 6000) && (await serverLogoX()) === 32, await serverLogoX());
 
-  // ---- Network failure -> retry with countdown, then success
   let failures = 0;
   intercept = (p) => { failures++; b.s('Fetch.failRequest', { requestId: p.requestId, errorReason: 'InternetDisconnected' }); };
   await A.nudge();
@@ -84,7 +80,6 @@ function tools(page, errors, label) {
   await A.click('.save-status');
   check('"Retry now" saves once the connection is back', await A.waitFor(`document.querySelector('.save-status').textContent === 'Saved'`, 4000) && (await serverLogoX()) === 34, await serverLogoX());
 
-  // ---- Server error 500 -> retrying; 422 -> error, no auto retry
   intercept = (p) => b.s('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 500, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body: Buffer.from(JSON.stringify({ error: { message: 'Something went wrong on the server.' } })).toString('base64') });
   await A.nudge();
   check('HTTP 500 -> retrying', await A.waitFor(`document.querySelector('.save-status').textContent.startsWith('Offline · retrying')`, 4000));
@@ -98,7 +93,6 @@ function tools(page, errors, label) {
   await A.click('.save-status');
   check('manual Retry after 422 saves', await A.waitFor(`document.querySelector('.save-status').textContent === 'Saved'`, 4000));
 
-  // ---- Second tab: auto refresh when clean
   const pB = await b.newPage();
   const B = tools(pB, errors, 'B');
   check('tab B loads', await B.open());
@@ -109,12 +103,11 @@ function tools(page, errors, label) {
   check('clean tab A refreshes itself from tab B', await A.waitFor(`document.querySelector('[data-id="${LOGO}"]').style.left !== '${vBefore}' && [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('another tab'))`, 4000), `${vBefore} -> ${await A.ev(`return document.querySelector('[data-id="${LOGO}"]').style.left`)}`);
   check('tab A kept its selection after refresh', await A.ev(`return document.querySelector('.canvas .is-selected')?.dataset.id === '${LOGO}'`));
 
-  // ---- Conflict: A has unsaved edits while B saves -> dialog in A
   let holdA;
-  intercept = (p) => { holdA = p.requestId; }; // hold A's save until B has saved
-  await A.nudge(); // A: dirty
+  intercept = (p) => { holdA = p.requestId; };
+  await A.nudge();
   await A.waitFor(`document.querySelector('.save-status').textContent === 'Saving…'`, 4000);
-  await B.key('ArrowDown', 'ArrowDown', 40); // B moves the logo down
+  await B.key('ArrowDown', 'ArrowDown', 40);
   await B.waitFor(`document.querySelector('.save-status').textContent === 'Saved'`, 5000);
   intercept = null;
   await b.s('Fetch.continueRequest', { requestId: holdA });
@@ -129,7 +122,6 @@ function tools(page, errors, label) {
   check('"Keep my version" overwrites the server copy', await A.waitFor(`document.querySelector('.save-status').textContent === 'Saved'`, 4000) && (await serverLogoX()) === aX, `${await serverLogoX()} vs ${aX}`);
   check('tab B picks up A’s version (clean tab refresh)', await B.waitFor(`parseInt(document.querySelector('[data-id="${LOGO}"]').style.left) === ${aX}`, 4000));
 
-  // Conflict again, this time load the latest
   holdA = null;
   intercept = (p) => { holdA = p.requestId; };
   await A.nudge();
@@ -145,7 +137,6 @@ function tools(page, errors, label) {
   check('"Load latest version" shows the server copy', await A.waitFor(`parseInt(document.querySelector('[data-id="${LOGO}"]').style.left) === ${serverNow} && document.querySelector('.save-status').textContent === 'Saved'`, 4000), `${await A.logoX()} vs ${serverNow}`);
   check('…including B’s other edit', await A.ev(`return document.querySelector('[data-id="${BAR}"]').style.left`) === await B.ev(`return document.querySelector('[data-id="${BAR}"]').style.left`));
 
-  // ---- Switching dashboards saves first (no confirm)
   const second = (await api('/dashboards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Second board' }) })).data.id;
   await A.open(BASE + '?d=' + D);
   await A.click(`[data-id="${LOGO}"]`);
@@ -156,13 +147,12 @@ function tools(page, errors, label) {
   await A.clickText('.menu-item', 'Second board');
   check('switching flushes the pending change', await A.waitFor(`document.querySelector('.chip-label').textContent === 'Second board'`, 5000) && (await serverLogoX()) === before + 1, `${before} -> ${await serverLogoX()}`);
 
-  // ---- Deleted in another tab
   await B.open(BASE + '?d=' + second);
   await A.click('.chip');
   await A.clickText('.menu-item', 'Delete this dashboard');
   check('tab B is told and moves to another dashboard', await B.waitFor(`document.querySelector('.chip-label').textContent === 'Sales Overview' && [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('deleted in another tab'))`, 5000), await B.ev(`return document.querySelector('.chip-label').textContent`));
 
-  await A.waitFor(`document.querySelector('[data-id="${LOGO}"]')`, 5000); // A is still opening the remaining dashboard
+  await A.waitFor(`document.querySelector('[data-id="${LOGO}"]')`, 5000);
   await A.click(`[data-id="${LOGO}"]`);
   intercept = (p) => b.s('Fetch.failRequest', { requestId: p.requestId, errorReason: 'InternetDisconnected' });
   await A.nudge();

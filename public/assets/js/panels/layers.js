@@ -1,5 +1,3 @@
-/** Left "Layers" panel: the dashboard's sections and elements as a tree. */
-
 import { registry } from '../elements/index.js';
 import { h, icon } from '../utils.js';
 

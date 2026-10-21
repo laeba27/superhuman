@@ -1,15 +1,8 @@
--- Phase 9: one `style` object for sections and elements.
---   {fill, opacity, radius, border, shadow}
--- Converts layouts saved before it. Run once on an existing database:
---   mysql -u root -p < database/migrations/009-styles.sql
--- (A fresh install from schema.sql already has the new shape.)
-
 SET NAMES utf8mb4;
 USE dashboard_builder;
 
 ALTER TABLE elements ADD COLUMN style JSON NULL AFTER z_index;
 
--- Sections: {background, borderColor, borderRadius} -> the new keys.
 UPDATE sections
 SET style = JSON_OBJECT(
   'fill', JSON_OBJECT('type', 'solid', 'color', COALESCE(style->>'$.background', '#ffffff')),
@@ -21,7 +14,6 @@ SET style = JSON_OBJECT(
   'shadow', 'none')
 WHERE NOT JSON_CONTAINS_PATH(style, 'one', '$.fill');
 
--- Elements start unstyled; an image's corner radius moves from content to style.
 UPDATE elements
 SET style = JSON_OBJECT(
   'fill', JSON_OBJECT('type', 'none'),

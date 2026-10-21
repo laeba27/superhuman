@@ -40,12 +40,10 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await b.s('Page.navigate', { url: BASE });
   check('editor loads', await waitFor(`document.querySelectorAll('.element').length === 4`));
 
-  // ---- Chrome / layout
   check('dark chrome + rail + add tiles', await ev(`return getComputedStyle(document.querySelector('.topbar')).backgroundColor === 'rgb(30, 30, 30)' && document.querySelectorAll('.rail .icon-btn').length === 3 && document.querySelectorAll('.tile').length === 8`));
   check('chip shows dashboard name, status Saved', await ev(`return document.querySelector('.chip-label').textContent === 'Sales Overview' && document.querySelector('.save-status').textContent === 'Saved'`));
   check('breadcrumb shows dashboard', await ev(`return document.querySelector('.breadcrumbs').textContent === 'Sales Overview'`));
 
-  // ---- Text: whole-box formatting (selected, not editing)
   await click(`[data-id="${TEXT}"]`);
   check('text selected -> toolbar shown', await waitFor(`!document.querySelector('.text-toolbar').hidden`));
   check('properties: Content tab + type/name header', await ev(`return document.querySelector('.props-type').textContent === 'Text' && document.querySelector('.props-name').textContent.startsWith('Sales Overview') && ${byText('.tab', 'Content')}.getAttribute('aria-selected') === 'true'`));
@@ -55,7 +53,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await key('z', 'KeyZ', 90, 4);
   check('undo restores original html', (await html(TEXT)).includes('font-size: 28px') && !(await html(TEXT)).includes('18px'));
 
-  // ---- Text: editing mode
   const tp = await centerOf(`[data-id="${TEXT}"] h1`);
   await clickAt(tp, 2);
   check('double-click enters editing', await waitFor(`document.querySelector('[data-id="${TEXT}"] .text-body').isContentEditable && document.activeElement.classList.contains('text-body')`));
@@ -63,7 +60,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await ev(`const h1 = document.querySelector('[data-id="${TEXT}"] h1'); const r = document.createRange(); r.selectNodeContents(h1.firstChild); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r);`);
   await b.s('Input.insertText', { text: ' 2026' });
   check('typing updates the store (Unsaved changes)', await waitFor(`document.querySelector('.save-status').textContent === 'Unsaved changes'`) && (await html(TEXT)).includes('Sales Overview 2026'));
-  // select the word "revenue" and bold it via toolbar
   await ev(`const p = document.querySelector('[data-id="${TEXT}"] p'); const t = [...p.childNodes].find(n => n.nodeType === 3 && n.textContent.includes('revenue')); const i = t.textContent.indexOf('revenue'); const r = document.createRange(); r.setStart(t, i); r.setEnd(t, i + 7); getSelection().removeAllRanges(); getSelection().addRange(r);`);
   await sleep(50);
   await click('.tt-btn[aria-label^="Bold"]');
@@ -74,10 +70,8 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await ev(`const c = document.querySelector('.tt-color'); c.value = '#d03b3b'; c.dispatchEvent(new Event('input', { bubbles: true }));`);
   check('colour on selected word only', /color: rgb\(208, 59, 59\)[^<]*">revenue|color: rgb\(208, 59, 59\);">(<b>)?revenue/.test(await html(TEXT)) && !(await html(TEXT)).includes('color: rgb(208, 59, 59);">Sales'), await html(TEXT));
   check('still editing after toolbar use', await ev(`return document.querySelector('[data-id="${TEXT}"] .text-body').isContentEditable`));
-  // paste as plain text
   await ev(`const dt = new DataTransfer(); dt.setData('text/plain', ' pasted'); dt.setData('text/html', '<b style="color:red">pasted</b><script>x</script>'); const h1 = document.querySelector('[data-id="${TEXT}"] h1'); const r = document.createRange(); r.selectNodeContents(h1); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));`);
   check('paste inserts plain text only', (await html(TEXT)).includes('2026 pasted') && !(await html(TEXT)).includes('color:red'), await html(TEXT));
-  // auto-grow
   const h0 = await ev(`return parseInt(document.querySelector('[data-id="${TEXT}"]').style.height)`);
   await ev(`const p = document.querySelector('[data-id="${TEXT}"] p'); const r = document.createRange(); r.selectNodeContents(p); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r);`);
   for (let i = 0; i < 3; i++) { await b.s('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' }); await b.s('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter' }); await b.s('Input.insertText', { text: `Line ${i}` }); }
@@ -96,7 +90,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   const saved = await html(TEXT);
   check('after reload: bold/size/colour/typed text kept', /<b>(<span[^>]*>)*revenue/.test(saved) && saved.includes('font-size: 24px') && /color/.test(saved) && saved.includes('Sales Overview 2026 pasted') && saved.includes('Line 2'), saved);
 
-  // ---- Image: upload via picker
   await click(`[data-id="${REGION}"]`);
   await clickText('.tile-name', 'Image');
   check('image tile adds placeholder', await waitFor(`document.querySelector('.element-image.is-selected .placeholder-button')`));
@@ -109,15 +102,13 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   check('image form shows Replace + fit control', await ev(`return Boolean(${byText('.btn', 'Replace')}) && document.querySelectorAll('.properties .segment').length === 3`));
   await clickText('.segment', 'Fit');
   check('fit = contain', await ev(`return document.querySelector('[data-id="${imgId}"] img').style.objectFit === 'contain'`));
-  // drop a file on the header section -> new image there
   const before = await ev(`return document.querySelectorAll('[data-id="${HEADER}"] .element').length`);
   await ev(`const bytes = Uint8Array.from(atob('${PNG_B64}'), c => c.charCodeAt(0)); const dt = new DataTransfer(); dt.items.add(new File([bytes], 'orange-dot.png', { type: 'image/png' })); const s = document.querySelector('[data-id="${HEADER}"]'); const r = s.getBoundingClientRect(); const opts = { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.right - 80, clientY: r.top + r.height / 2 }; s.dispatchEvent(new DragEvent('dragover', opts)); s.dispatchEvent(new DragEvent('drop', opts));`);
   check('dropped file becomes an image in that section', await waitFor(`document.querySelectorAll('[data-id="${HEADER}"] .element').length === ${before + 1} && document.querySelector('[data-id="${HEADER}"] .element-image.is-selected img')?.alt === 'orange dot'`, 8000));
   await ev(`const dt = new DataTransfer(); dt.items.add(new File(['hi'], 'notes.txt', { type: 'text/plain' })); const s = document.querySelector('[data-id="${HEADER}"]'); const r = s.getBoundingClientRect(); const o = { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.left + 300, clientY: r.top + 40 }; s.dispatchEvent(new DragEvent('dragover', o)); s.dispatchEvent(new DragEvent('drop', o));`);
   check('non-image drop shows error toast', await waitFor(`[...document.querySelectorAll('.toast.is-error')].some(t => t.textContent.includes('Drop an image file'))`));
-  await ev(`document.querySelectorAll('.toast').forEach((t) => t.remove())`); // it sits over the properties panel
+  await ev(`document.querySelectorAll('.toast').forEach((t) => t.remove())`);
 
-  // ---- Chart settings
   await click(`[data-id="${BAR}"]`);
   check('chart form: type/title/data controls', await waitFor(`${byText('.segment', 'Bar')} && ${byText('.segment', 'My data')} && document.querySelector('.data-table')`));
   await clickText('.segment', 'Line');
@@ -148,14 +139,12 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await clickText('.segment', 'My data');
   check('switching back to My data keeps edited table', await waitFor(`${chartOf(BAR)}.data.labels[0] === 'Northwest' && ${chartOf(BAR)}.data.labels.length === 6`), await ev(`return JSON.stringify(${chartOf(BAR)}.data.labels)`));
 
-  // ---- Style tab
   await clickText('.tab', 'Style');
   check('Style tab has position + layer', await waitFor(`document.querySelector('.properties .field-grid') && ${byText('.pgroup-head span', 'Layer')}`));
   await clickText('.pgroup-head span', 'Layout');
   check('groups collapse', await ev(`return document.querySelector('.pgroup').classList.contains('is-collapsed')`));
   await clickText('.pgroup-head span', 'Layout');
 
-  // ---- Design: fill, shadow, opacity, align; kept after a reload
   const skin = `document.querySelector('[data-id="${BAR}"] .skin')`;
   const press = async (sel) => { await ev(`document.querySelector(${JSON.stringify(sel)}).scrollIntoView({ block: 'center' })`); await click(sel); };
   await clickText('.segment', 'Gradient');
@@ -174,7 +163,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await click(`[data-id="${BAR}"]`);
   await clickText('.tab', 'Content');
 
-  // ---- Layers + breadcrumbs
   await click('.rail [aria-label="Layers"]');
   check('layers tree lists sections and elements', await waitFor(`!document.getElementById('layers-panel').hidden && document.querySelectorAll('.layer').length === 3 + 6`), await ev(`return document.querySelectorAll('.layer').length`));
   check('selected element highlighted in layers', await ev(`return document.querySelector('.layer.is-selected')?.textContent === 'Orders by area'`), await ev(`return document.querySelector('.layer.is-selected')?.textContent`));
@@ -184,7 +172,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   check('breadcrumb root deselects', await ev(`return !document.querySelector('.is-selected') && document.querySelector('.props-type').textContent === 'Dashboard'`));
   await click('.rail [aria-label="Add"]');
 
-  // ---- Devices
   const width = () => ev(`return Math.round(document.getElementById('canvas').getBoundingClientRect().width)`);
   await click('[aria-label="Tablet width"]');
   check('tablet frame 768px', await width() === 768 && await ev(`return document.querySelector('.device-width').textContent === '768 PX'`), await width());
@@ -193,11 +180,9 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await click('[aria-label="Desktop width"]');
   check('desktop fits viewport', await width() > 768);
 
-  // ---- Drag a tile from the Add panel onto the canvas
   await ev(`const dt = new DataTransfer(); dt.setData('application/x-dashboard-tool', JSON.stringify({ kind: 'element', id: 'heading' })); const s = document.querySelector('[data-id="${SALES}"]'); const r = s.getBoundingClientRect(); const o = { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.left + r.width * 0.5, clientY: r.bottom - 20 }; s.dispatchEvent(new DragEvent('dragover', o)); s.dispatchEvent(new DragEvent('drop', o));`);
   check('dropped Heading tile lands in that section, selected', await waitFor(`document.querySelector('[data-id="${SALES}"] .element-text.is-selected h2')?.textContent === 'Heading'`));
 
-  // ---- Layouts
   await clickText('.tab', 'Layouts');
   check('layouts tab shows 4 presets', await ev(`return document.querySelectorAll('.tile-layout').length === 4`));
   const sections0 = await ev(`return document.querySelectorAll('.section').length`);
@@ -208,7 +193,6 @@ const PNG_B64 = fs.readFileSync(path.join(__dirname, 'fixtures', 'photo.b64'), '
   await clickText('.tab', 'Elements');
   check('save after layouts', await save());
 
-  // ---- Dashboard menu: new + delete
   dialogAnswer = { accept: true, promptText: 'Scratch board' };
   await click('.chip');
   check('menu lists dashboards', await waitFor(`!document.querySelector('.menu').hidden && document.querySelectorAll('.menu-item').length === 4`));

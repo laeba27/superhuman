@@ -6,11 +6,6 @@ namespace App\Support;
 
 use App\HttpException;
 
-/**
- * Checks a dashboard layout sent by the browser and returns a clean copy that
- * contains only known fields. Every problem is collected, so the client gets
- * the full list in one 422 response.
- */
 final class Validator
 {
     private const MAX_SECTIONS = 50;
@@ -24,9 +19,7 @@ final class Validator
     private const COLOR = '/^(#[0-9a-f]{3,8}|transparent|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i';
     private const IMAGE_SRC = '#^(uploads|assets/img)/[A-Za-z0-9][A-Za-z0-9._-]*\.(png|jpe?g|gif|webp|svg)$#i';
 
-    /** @var list<array{field: string, message: string}> */
     private array $errors = [];
-    /** @var array<string, true> */
     private array $seenIds = [];
 
     public function __construct(private readonly HtmlSanitizer $sanitizer) {}
@@ -89,7 +82,6 @@ final class Validator
         $type = $value['type'] ?? null;
         $content = $this->object($value['content'] ?? [], "$path.content");
 
-        // Before styles existed, an image kept its corner radius in content.
         $legacy = ['fill' => ['type' => 'none'], 'radius' => 0, 'border' => ['width' => 0, 'color' => '#e3e6eb']];
         if ($type === 'image' && is_int($content['borderRadius'] ?? null)) {
             $legacy['radius'] = min(max($content['borderRadius'], 0), self::MAX_RADIUS);
@@ -120,10 +112,6 @@ final class Validator
         ];
     }
 
-    /**
-     * The shared look of a section or element. Missing keys come from
-     * $defaults, which for old layouts are converted from their old keys.
-     */
     private function style(array $style, string $path, array $defaults): array
     {
         $fill = $this->object($style['fill'] ?? $defaults['fill'], "$path.fill");
@@ -155,7 +143,6 @@ final class Validator
         };
     }
 
-    /** Defaults for a section saved before styles existed: {background, borderColor, borderRadius}. */
     private static function sectionLegacy(array $style): array
     {
         $borderColor = $style['borderColor'] ?? 'transparent';
@@ -175,7 +162,6 @@ final class Validator
 
     private function imageContent(array $content, string $path): array
     {
-        // An empty src is allowed: it's an image box waiting for an upload.
         $src = $this->string($content['src'] ?? '', "$path.src", 0, 255);
         if ($src !== '' && !preg_match(self::IMAGE_SRC, $src)) {
             $src = $this->fail("$path.src", 'must be a path returned by the upload API', '');
@@ -241,8 +227,6 @@ final class Validator
         ];
     }
 
-    // ---- primitives -------------------------------------------------------
-
     private function id(mixed $value, string $path): string
     {
         if (!Uuid::isValid($value)) {
@@ -269,7 +253,6 @@ final class Validator
         return $value;
     }
 
-    /** A whole number in range. Whole floats like 8.0 are accepted. */
     private function integer(mixed $value, string $path, int $min, int $max): int
     {
         if (is_float($value) && is_finite($value) && floor($value) === $value) {
@@ -281,7 +264,6 @@ final class Validator
         return $value;
     }
 
-    /** Any number in range, rounded to whole pixels. */
     private function number(mixed $value, string $path, int $min, int $max): int
     {
         if (!(is_int($value) || is_float($value)) || !is_finite((float) $value) || $value < $min || $value > $max) {
@@ -309,7 +291,6 @@ final class Validator
             : $this->fail($path, 'must be a hex, rgb() or rgba() color', 'transparent');
     }
 
-    /** A JSON object. `{}` decodes to [] in PHP, so an empty array is fine. */
     private function object(mixed $value, string $path): array
     {
         if (!is_array($value) || ($value !== [] && array_is_list($value))) {
@@ -329,7 +310,6 @@ final class Validator
         return $value;
     }
 
-    /** Records an error and returns $fallback so checking can carry on. */
     private function fail(string $path, string $message, mixed $fallback): mixed
     {
         if (count($this->errors) < self::MAX_ERRORS) {

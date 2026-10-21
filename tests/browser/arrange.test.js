@@ -33,7 +33,6 @@ const META = 4, ALT = 1;
   const box = (id) => ev(`const n = document.querySelector('[data-id="${id}"]'); return { x: parseInt(n.style.left), y: parseInt(n.style.top), w: parseInt(n.style.width), h: parseInt(n.style.height), z: parseInt(n.style.zIndex) }`);
   const selectedId = () => ev(`return document.querySelector('.canvas .is-selected')?.dataset.id ?? null`);
   const sectionOf = (id) => ev(`return document.querySelector('[data-id="${id}"]').closest('.section').dataset.id`);
-  // A screen point inside every given element where one of them (not some other element) is on top.
   const pointIn = (ids) => ev(`
     const rects = ${JSON.stringify(ids)}.map(id => document.querySelector('[data-id="' + id + '"]').getBoundingClientRect());
     const l = Math.max(...rects.map(r => r.left)), t = Math.max(...rects.map(r => r.top)), r = Math.min(...rects.map(r => r.right)), b = Math.min(...rects.map(r => r.bottom));
@@ -49,7 +48,6 @@ const META = 4, ALT = 1;
   await b.s('Page.reload');
   check('loads', await waitFor(`document.querySelectorAll('.element').length === 4 && window.Chart`));
 
-  // ---- Duplicate element (Cmd+D)
   await click(`[data-id="${BAR}"]`);
   await key('d', 'KeyD', 68, META);
   const dup = await selectedId();
@@ -61,7 +59,6 @@ const META = 4, ALT = 1;
   await key('z', 'KeyZ', 90, META);
   check('undo removes the copy', await count('.element') === 4 && !(await ev(`return Boolean(document.querySelector('[data-id="${dup}"]'))`)));
 
-  // ---- Duplicate section via panel button
   await click(`[data-id="${SALES}"]`);
   await clickAt({ x: (await centerOf(`[data-id="${SALES}"]`)).x, y: (await ev(`return document.querySelector('[data-id="${SALES}"]').getBoundingClientRect().bottom - 6`)) });
   check('section selected', await selectedId() === SALES);
@@ -75,7 +72,6 @@ const META = 4, ALT = 1;
   check('all ids unique', await ev(`const ids = [...document.querySelectorAll('.canvas [data-id]')].map(n => n.dataset.id); return new Set(ids).size === ids.length`));
   check('cloned live chart is fetching on its own', await waitFor(`Chart.getChart(document.querySelector('[data-id="${dupSec}"] canvas'))?.data.labels.length === 20`, 6000));
 
-  // ---- Copy / paste element into another section
   await click(`[data-id="${LOGO}"]`);
   await key('c', 'KeyC', 67, META);
   check('copy shows toast', await waitFor(`[...document.querySelectorAll('.toast')].some(t => t.textContent === 'Copied image.')`));
@@ -86,14 +82,12 @@ const META = 4, ALT = 1;
   await key('v', 'KeyV', 86, META);
   const pasted2 = await selectedId();
   check('pasting again offsets so it does not cover the first', pasted2 !== pasted && (await box(pasted2)).x === 40 && (await box(pasted2)).y === 36, JSON.stringify(await box(pasted2)));
-  // cut
   await key('x', 'KeyX', 88, META);
   check('cut removes the element', !(await ev(`return Boolean(document.querySelector('[data-id="${pasted2}"]'))`)));
   await click(`[data-id="${REGION}"] .element`);
   await key('v', 'KeyV', 86, META);
   check('paste after cut lands in the selected element’s section', await sectionOf(await selectedId()) === REGION);
 
-  // ---- Copy / paste section
   await click(`[data-id="${HEADER}"]`);
   await clickAt({ x: (await centerOf(`[data-id="${HEADER}"]`)).x + 300, y: (await centerOf(`[data-id="${HEADER}"]`)).y });
   check('header section selected', await selectedId() === HEADER);
@@ -104,7 +98,6 @@ const META = 4, ALT = 1;
   check('pasted section lands right below the selected one, others pushed down', pastedSec !== HEADER && (await box(pastedSec)).y === hd.y + hd.h + 24 && (await box(SALES)).y === hd.y + hd.h + 24 + hd.h + 24,
     JSON.stringify({ pasted: await box(pastedSec), sales: await box(SALES) }));
 
-  // ---- Layer order: make two elements overlap in one section
   await click(`[data-id="${BAR}"]`);
   await key('d', 'KeyD', 68, META);
   const top = await selectedId();
@@ -121,7 +114,6 @@ const META = 4, ALT = 1;
   check('panel "Bring to front" works + buttons update', await topAt(overlap) === top && await ev(`const b = [...document.querySelectorAll('.layer-buttons button')]; return !b[0].disabled && b[3].disabled`));
   check('zIndex renumbered 1..n', await ev(`return [...document.querySelectorAll('[data-id="${REGION}"] .element')].map(e => e.style.zIndex).sort().join() === '1,2,3'`), await ev(`return [...document.querySelectorAll('[data-id="${REGION}"] .element')].map(e => e.style.zIndex).join()`));
 
-  // ---- Context menu
   await clickAt(await pointIn([BAR]), 'right');
   check('right-click opens menu and selects element', await waitFor(`!document.querySelector('.context-menu').hidden`) && await selectedId() === BAR);
   check('menu has commands with shortcuts', await ev(`const t = document.querySelector('.context-menu').textContent; return ['Duplicate', 'Copy', 'Paste', 'Bring to front', 'Send to back', 'Delete', '⌘D'].every(s => t.includes(s))`));
@@ -138,13 +130,11 @@ const META = 4, ALT = 1;
   await clickText('.context-menu .menu-item', 'Delete');
   check('menu Delete removes element', !(await ev(`return Boolean(document.querySelector('[data-id="${top}"]'))`)));
 
-  // ---- Move to section via panel
   await click(`[data-id="${BAR}"]`);
   await ev(`const s = [...document.querySelectorAll('.properties select')].find(s => [...s.options].some(o => o.textContent === 'Section 1')); s.value = '${SALES}'; s.dispatchEvent(new Event('change', { bubbles: true }));`);
   check('Section picker moves element into chosen section', await sectionOf(BAR) === SALES && await selectedId() === BAR);
   check('picker lists every section', await ev(`return [...document.querySelectorAll('.properties select')].find(s => [...s.options].some(o => o.textContent === 'Section 1')).options.length === 5`));
 
-  // ---- Save and reload
   await key('s', 'KeyS', 83, META);
   check('saves (server accepts copies, new ids, renumbered z)', await waitFor(`document.querySelector('.save-status').textContent === 'Saved'`), await ev(`return document.querySelector('.save-status').textContent + ' ' + document.querySelector('.toast.is-error')?.textContent`));
   const snapshot = await ev(`return [...document.querySelectorAll('.canvas [data-id]')].map(n => n.dataset.id + ':' + n.style.left + ',' + n.style.top + ',' + n.style.zIndex + '@' + (n.closest('.section')?.dataset.id ?? '')).sort().join('|')`);
@@ -153,7 +143,6 @@ const META = 4, ALT = 1;
   const after = await ev(`return [...document.querySelectorAll('.canvas [data-id]')].map(n => n.dataset.id + ':' + n.style.left + ',' + n.style.top + ',' + n.style.zIndex + '@' + (n.closest('.section')?.dataset.id ?? '')).sort().join('|')`);
   check('after reload: identical layout', snapshot === after);
 
-  // ---- Clipboard across dashboards (same tab)
   await click(`[data-id="${TEXT}"]`);
   await key('c', 'KeyC', 67, META);
   await click('.chip');

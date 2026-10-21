@@ -1,5 +1,3 @@
-/** Properties for each element type's content: text, image and chart. */
-
 import { api } from '../api.js';
 import { SERIES } from '../elements/chart.js';
 import { findItem } from '../store.js';
@@ -17,7 +15,6 @@ const FALLBACK_METRICS = [
 ];
 let metrics = null;
 
-/** Changes to these rebuild the form (they add or remove inputs). */
 export function structureKey(item) {
   if (item.type === 'chart') {
     const c = item.content;
@@ -40,8 +37,6 @@ export function contentForm(kit, store, element, actions) {
   return [];
 }
 
-// ---- Text ------------------------------------------------------------------------
-
 function textForm({ id, actions }) {
   return [
     group('Text',
@@ -50,8 +45,6 @@ function textForm({ id, actions }) {
       h('button', { class: 'btn', type: 'button', onClick: () => actions.editText(id) }, icon('edit'), 'Edit text')),
   ];
 }
-
-// ---- Image ------------------------------------------------------------------------
 
 function imageForm({ kit, id, element, content, set, actions }) {
   const hasImage = Boolean(element.content.src);
@@ -71,8 +64,6 @@ function imageForm({ kit, id, element, content, set, actions }) {
         { placeholder: 'Describe the image', maxLength: 200 }))),
   ];
 }
-
-// ---- Chart ------------------------------------------------------------------------
 
 function chartForm(ctx) {
   const { kit, id, element, content, set } = ctx;
@@ -99,7 +90,6 @@ function switchSource({ store, content, set }, source) {
   if (source === 'api') {
     set({ dataSource: 'api', metric: c.metric ?? 'revenue', granularity: c.granularity ?? 'month', points: c.points ?? 12, refreshSec: c.refreshSec ?? 0 });
   } else {
-    // Static charts need at least one series; start from a small sample.
     set(c.datasets.length
       ? { dataSource: 'static' }
       : { dataSource: 'static', labels: ['A', 'B', 'C', 'D'], datasets: [{ label: 'Series 1', data: [4, 7, 5, 9], color: '' }] });
@@ -109,7 +99,6 @@ function switchSource({ store, content, set }, source) {
 function apiFields({ kit, store, id, content, set }) {
   const metric = kit.select(FALLBACK_METRICS.map((m) => ({ value: m.key, label: m.label })),
     (s) => content(s).metric, (value) => set({ metric: value }));
-  // Swap in the server's list once it arrives.
   metrics ??= api.chartMetrics().then((r) => r.metrics).catch(() => FALLBACK_METRICS);
   metrics.then((list) => {
     const current = metric.value;
@@ -123,7 +112,6 @@ function apiFields({ kit, store, id, content, set }) {
     field('Period', kit.select(
       [{ value: 'month', label: 'Monthly' }, { value: 'day', label: 'Daily' }, { value: 'live', label: 'Live (every 5 seconds)' }],
       (s) => content(s).granularity,
-      // Live data is only interesting if it refreshes, so switch refresh on with it.
       (granularity) => set(granularity === 'live' && !content(store.getState()).refreshSec
         ? { granularity, refreshSec: 5 } : { granularity }))),
     row('Points', kit.number((s) => content(s).points, (points) => set({ points: Math.max(3, points) }, `${id}:points`),

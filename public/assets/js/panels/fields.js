@@ -1,11 +1,3 @@
-/**
- * Form building blocks for the properties panel.
- *
- * Each input registers a `sync(state)` that copies the current value from
- * the store into it. The panel calls every sync after each store change,
- * skipping the input that has focus so typing isn't interrupted.
- */
-
 import { h, icon, loadPref, savePref, toHex6 } from '../utils.js';
 
 const collapsedGroups = new Set(loadPref('collapsedGroups', []));
@@ -14,7 +6,6 @@ export function createFieldKit(store, register) {
   const track = (input, sync) => register({ input, sync });
 
   return {
-    /** Re-runs `sync` on every store change, even while focus is inside (e.g. button states). */
     watch(node, sync) {
       register({ input: node, sync, always: true });
       return node;
@@ -30,7 +21,6 @@ export function createFieldKit(store, register) {
         if (max != null) value = Math.min(value, max);
         set(value);
       });
-      // Show the value the store settled on (it may have been clamped).
       input.addEventListener('blur', () => sync(store.getState()));
       const sync = (state) => {
         const value = get(state);
@@ -47,7 +37,6 @@ export function createFieldKit(store, register) {
       return input;
     },
 
-    /** A slider with a number box beside it. The slider may stop short of the number's max. */
     range(get, set, { min = 0, max, sliderMax = max, unit = '' } = {}) {
       const slider = h('input', { class: 'range', type: 'range', min, max: sliderMax });
       const number = this.number(get, set, { min, max });
@@ -59,7 +48,6 @@ export function createFieldKit(store, register) {
       return h('div', { class: 'range-field' }, slider, affix(number, unit));
     },
 
-    /** A colour swatch plus a hex box you can type or paste into. */
     colorHex(get, set, fallback = '#ffffff') {
       const swatch = h('input', { class: 'swatch-input', type: 'color', 'aria-label': 'Pick colour' });
       const text = h('input', { class: 'input hex-input', type: 'text', maxLength: 32, spellcheck: false, 'aria-label': 'Hex colour' });
@@ -101,7 +89,6 @@ export function createFieldKit(store, register) {
       return input;
     },
 
-    /** A row of toggle buttons for a small set of choices. */
     segmented(options, get, set, label) {
       const buttons = options.map((o) => h('button', {
         class: 'segment', type: 'button', onClick: () => set(o.value),
@@ -116,12 +103,10 @@ export function createFieldKit(store, register) {
   };
 }
 
-/** The selection's type and name, like "Chart  Orders by region". */
 export function header(title, name = '') {
   return h('div', { class: 'props-header' }, h('span', { class: 'props-type' }, title), name && h('span', { class: 'props-name' }, name));
 }
 
-/** A collapsible group of fields. Which groups are collapsed is remembered. */
 export function group(title, ...children) {
   const node = h('section', { class: `pgroup${collapsedGroups.has(title) ? ' is-collapsed' : ''}` });
   const head = h('button', { class: 'pgroup-head', type: 'button', 'aria-expanded': String(!collapsedGroups.has(title)) },
@@ -137,10 +122,6 @@ export function group(title, ...children) {
   return node;
 }
 
-/**
- * A group that is off until added with its + button (like Figma's Border and
- * Shadow). `build` makes the fields; it's only called while the group is on.
- */
 export function addableGroup(title, on, { onAdd, onRemove, build }) {
   const label = `${on ? 'Remove' : 'Add'} ${title.toLowerCase()}`;
   return h('section', { class: `pgroup pgroup-addable${on ? '' : ' is-off'}` },
@@ -151,12 +132,10 @@ export function addableGroup(title, on, { onAdd, onRemove, build }) {
     on && h('div', { class: 'pgroup-body' }, ...build()));
 }
 
-/** An input with a short label inside its right edge, like "X" or "%". */
 export function affix(input, text) {
   return text ? h('label', { class: 'input-affix' }, input, h('span', { class: 'affix' }, text)) : input;
 }
 
-/** "#abc", "abc", "#aabbcc" or "aabbcc" as "#aabbcc"; anything else is null. */
 function parseHex(value) {
   const hex = value.trim().replace(/^#/, '');
   if (/^[0-9a-f]{6}$/i.test(hex)) return `#${hex.toLowerCase()}`;
@@ -164,12 +143,10 @@ function parseHex(value) {
   return null;
 }
 
-/** Label on the left, a compact input on the right. */
 export function row(label, input) {
   return h('label', { class: 'field-row' }, h('span', { class: 'field-label' }, label), input);
 }
 
-/** Label above a full-width input. */
 export function field(label, input) {
   return h('label', { class: 'field' }, h('span', { class: 'field-label' }, label), input);
 }

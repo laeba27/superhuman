@@ -1,6 +1,4 @@
-/** Thin wrapper around the PHP API. Every call resolves to the response's `data`. */
-
-const BASE = 'api'; // relative, so the app works from any sub-folder
+const BASE = 'api';
 
 export class ApiError extends Error {
   constructor(status, message, details = {}) {
@@ -31,7 +29,6 @@ async function request(method, path, body) {
   try {
     payload = await response.json();
   } catch {
-    // Non-JSON body, e.g. a PHP fatal error page.
   }
   if (!response.ok) {
     const error = payload?.error ?? {};
@@ -40,7 +37,6 @@ async function request(method, path, body) {
   return payload?.data;
 }
 
-/** Only the fields the save endpoint reads. */
 function toLayout(dashboard) {
   return {
     name: dashboard.name,

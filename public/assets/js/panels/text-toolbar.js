@@ -1,32 +1,16 @@
-/**
- * Rich text editing for text elements.
- *
- * Double-click a text element (or press Enter with it selected) to type in
- * it. A floating toolbar above the selected text element applies bold,
- * italic, underline, font size and colour, to the selected words while
- * typing, or to the whole text when the element is only selected.
- *
- * Formatting uses document.execCommand: still the only built-in way to
- * format a contenteditable selection, and supported by every current browser.
- * Font size and colour come out as <font> tags, which are converted to
- * <span style> straight away because the server only keeps span styles.
- */
-
 import { findItem } from '../store.js';
 import { h, rgbToHex, toHex6 } from '../utils.js';
 
 const SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
 
 export function createTextEditor({ viewport, store, canvas }) {
-  let editing = null; // { id, node, body, key }
+  let editing = null;
   let savedRange = null;
   let session = 0;
 
-  // ---- Toolbar ---------------------------------------------------------------
-
   const commandButton = (command, label, title) => h('button', {
     class: 'tt-btn', type: 'button', title, 'aria-label': title, 'aria-pressed': 'false',
-    onMousedown: (e) => e.preventDefault(), // keep the text selection
+    onMousedown: (e) => e.preventDefault(),
     onClick: () => format(() => document.execCommand(command)),
   }, label);
 
@@ -47,8 +31,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     bold, italic, underline, h('span', { class: 'tt-sep' }), size, h('span', { class: 'tt-unit' }, 'px'), h('span', { class: 'tt-sep' }), color);
   viewport.append(toolbar);
 
-  // ---- Editing mode ------------------------------------------------------------
-
   function start(id, point) {
     if (store.getState().mode !== 'edit') return;
     if (editing?.id === id) return;
@@ -67,7 +49,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     body.addEventListener('paste', onPaste);
     body.focus();
 
-    // Put the caret where the user double-clicked, or select everything.
     const range = point && caretRangeAt(point);
     if (range && body.contains(range.startContainer)) setRange(range);
     else selectAll(body);
@@ -97,18 +78,16 @@ export function createTextEditor({ viewport, store, canvas }) {
   function onKeydown(event) {
     if (event.key === 'Escape') {
       event.preventDefault();
-      event.stopPropagation(); // the global Escape would also clear the selection
+      event.stopPropagation();
       stop();
     }
   }
 
-  // Paste as plain text, so formatting from other sites doesn't come along.
   function onPaste(event) {
     event.preventDefault();
     document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
   }
 
-  /** Saves the body's HTML, growing the element if the text no longer fits. */
   function commit(id, body, coalesce) {
     const found = findItem(store.getState().dashboard, id);
     if (!found) return;
@@ -121,9 +100,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     });
   }
 
-  // ---- Formatting --------------------------------------------------------------
-
-  /** The text element the toolbar acts on: the one being edited, or the selected one. */
   function target() {
     if (editing) return editing;
     const state = store.getState();
@@ -142,7 +118,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     const temporary = !editing;
 
     if (temporary) {
-      // Not typing: format the whole text.
       body.contentEditable = 'true';
       body.focus();
       selectAll(body);
@@ -174,11 +149,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     else document.execCommand('foreColor', false, value);
   }
 
-  /**
-   * Turns the <font> tags execCommand made into <span style>, and lets the new
-   * value win over older ones inside. Re-selects the converted text, because
-   * replacing the nodes collapses the selection.
-   */
   function convertFonts(body) {
     const spans = [];
     for (const font of [...body.querySelectorAll('font')]) {
@@ -204,8 +174,6 @@ export function createTextEditor({ viewport, store, canvas }) {
       setRange(range);
     }
   }
-
-  // ---- Selection helpers -------------------------------------------------------
 
   function selectAll(body) {
     const range = document.createRange();
@@ -239,8 +207,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     return range;
   }
 
-  // ---- Toolbar state and position ------------------------------------------------
-
   function refresh() {
     const t = target();
     toolbar.hidden = !t;
@@ -269,13 +235,11 @@ export function createTextEditor({ viewport, store, canvas }) {
     const r = t.node.getBoundingClientRect();
     const v = viewport.getBoundingClientRect();
     const height = toolbar.offsetHeight;
-    const roomAbove = r.top - v.top > height + 36; // leave space for the element's tag
+    const roomAbove = r.top - v.top > height + 36;
     const top = (roomAbove ? r.top - v.top - height - 30 : r.bottom - v.top + 10) + viewport.scrollTop;
     const left = Math.min(r.left - v.left, v.width - toolbar.offsetWidth - 8) + viewport.scrollLeft;
     toolbar.style.transform = `translate(${Math.max(8, left)}px, ${top}px)`;
   }
-
-  // ---- Wiring ------------------------------------------------------------------
 
   viewport.addEventListener('dblclick', (event) => {
     const node = event.target.closest('.element-text');
@@ -291,7 +255,6 @@ export function createTextEditor({ viewport, store, canvas }) {
     }
   });
 
-  // Clicking anywhere outside the text (and its toolbar) finishes editing.
   document.addEventListener('pointerdown', (event) => {
     if (editing && !editing.node.contains(event.target) && !toolbar.contains(event.target)) stop();
   }, true);

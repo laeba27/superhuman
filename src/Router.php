@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App;
 
-/** Matches "METHOD /path/{param}" routes and calls the handler with the params. */
 final class Router
 {
-    /** @var list<array{string, string, callable}> */
     private array $routes = [];
 
     public function get(string $pattern, callable $handler): void

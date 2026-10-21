@@ -1,6 +1,3 @@
-/** Small DOM and formatting helpers shared by the editor. */
-
-/** UUID v4. crypto.randomUUID only exists on https/localhost, so build it by hand. */
 export function uuid() {
   const b = crypto.getRandomValues(new Uint8Array(16));
   b[6] = (b[6] & 0x0f) | 0x40;
@@ -11,11 +8,6 @@ export function uuid() {
 
 export const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-/**
- * Creates an element. `props` keys starting with "on" become listeners,
- * `dataset`/`style` objects are merged, known DOM properties are assigned,
- * and anything else becomes an attribute.
- */
 export function h(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(props)) {
@@ -81,7 +73,6 @@ const ICONS = {
   unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>',
 };
 
-/** An inline SVG icon from the fixed set above. */
 export function icon(name) {
   const span = document.createElement('span');
   span.className = 'icon';
@@ -93,14 +84,12 @@ export function icon(name) {
 const plain = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
 
-/** Formats a chart value. unit is "USD", "%" or "". */
 export function formatValue(value, unit = '', { short = false } = {}) {
   if (unit === '%') return `${plain.format(value)}%`;
   const text = short ? compact.format(value) : plain.format(value);
   return unit === 'USD' ? `$${text}` : text;
 }
 
-/** Normalises a CSS color to #rrggbb for <input type="color">, or returns the fallback. */
 export function toHex6(color, fallback = '#ffffff') {
   if (typeof color !== 'string') return fallback;
   if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
@@ -108,21 +97,17 @@ export function toHex6(color, fallback = '#ffffff') {
   return short ? `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`.toLowerCase() : fallback;
 }
 
-/** CSS rgb()/rgba() string to #rrggbb. */
 export function rgbToHex(color) {
   const m = String(color).match(/\d+/g);
   if (!m || m.length < 3) return '#000000';
   return `#${m.slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** Plain text of an HTML string, parsed without running scripts or loading images. */
 export function htmlToText(html) {
-  // Put a space where blocks end, so "<h1>Title</h1><p>Body</p>" reads "Title Body".
   const spaced = html.replace(/<\/(p|div|h[1-6]|li|blockquote)>|<br\s*\/?>/gi, ' $&');
   return new DOMParser().parseFromString(spaced, 'text/html').body.textContent.replace(/\s+/g, ' ').trim();
 }
 
-/** Reads a remembered UI preference; storage can be unavailable (private mode, previews). */
 export function loadPref(key, fallback) {
   try {
     const raw = localStorage.getItem(`dashboard-builder:${key}`);
@@ -136,7 +121,6 @@ export function savePref(key, value) {
   try {
     localStorage.setItem(`dashboard-builder:${key}`, JSON.stringify(value));
   } catch {
-    // Not remembered this time; nothing else depends on it.
   }
 }
 

@@ -1,9 +1,3 @@
-/**
- * The look of a section or element: fill (solid or gradient), opacity,
- * corner radius, border and a shadow preset. Same shape as the server's
- * Validator::style(); layouts saved before styles existed are converted.
- */
-
 import { toHex6 } from './utils.js';
 
 export const SHADOWS = {
@@ -11,7 +5,7 @@ export const SHADOWS = {
   sm: '0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10)',
   md: '0 4px 8px -2px rgba(16, 24, 40, 0.10), 0 2px 4px -2px rgba(16, 24, 40, 0.06)',
   lg: '0 20px 24px -4px rgba(16, 24, 40, 0.10), 0 8px 8px -4px rgba(16, 24, 40, 0.04)',
-  glow: null, // tinted with the fill colour, see boxShadow()
+  glow: null,
 };
 export const SHADOW_NAMES = { none: 'None', sm: 'S', md: 'M', lg: 'L', glow: 'Glow' };
 
@@ -35,7 +29,6 @@ export const DEFAULT_ELEMENT_STYLE = {
   shadow: 'none',
 };
 
-/** Ready-made fills shown as swatches in the Fill group. */
 export const PRESET_FILLS = [
   { type: 'solid', color: '#ffffff' },
   { type: 'solid', color: '#f4f5f7' },
@@ -49,7 +42,6 @@ export const PRESET_FILLS = [
   { type: 'linear', from: '#e0eafc', to: '#cfdef3', angle: 180 },
 ];
 
-/** A complete style for a section or element, filling gaps and converting old keys. */
 export function normalizeStyle(kind, item) {
   const style = item.style ?? {};
   const base = kind === 'section' ? sectionLegacy(style) : elementLegacy(item);
@@ -62,7 +54,6 @@ export function normalizeStyle(kind, item) {
   };
 }
 
-/** Old sections: {background, borderColor, borderRadius}. */
 function sectionLegacy(style) {
   if (!('background' in style || 'borderColor' in style || 'borderRadius' in style)) return DEFAULT_SECTION_STYLE;
   const borderColor = style.borderColor ?? 'transparent';
@@ -73,13 +64,11 @@ function sectionLegacy(style) {
   };
 }
 
-/** Old images kept their corner radius in content. */
 function elementLegacy(item) {
   const radius = item.type === 'image' ? item.content?.borderRadius : null;
   return radius ? { ...DEFAULT_ELEMENT_STYLE, radius: Math.min(radius, MAX_RADIUS) } : DEFAULT_ELEMENT_STYLE;
 }
 
-/** A section or element with a complete style (and image content without the old radius). */
 export function withStyle(kind, item) {
   const next = { ...item, style: normalizeStyle(kind, item) };
   if (kind === 'element' && next.content && 'borderRadius' in next.content) {
@@ -99,8 +88,6 @@ export function normalizeDashboard(d) {
   };
 }
 
-// ---- CSS ---------------------------------------------------------------------------
-
 export function fillCss(fill) {
   if (fill?.type === 'solid') return fill.color;
   if (fill?.type === 'linear') return `linear-gradient(${fill.angle}deg, ${fill.from}, ${fill.to})`;
@@ -113,7 +100,6 @@ function boxShadow(style) {
   return `0 12px 32px -8px ${withAlpha(tint, 0.55)}`;
 }
 
-/** Inline styles for an item's skin (the layer that carries its look). */
 export function skinCss(style) {
   return {
     background: fillCss(style.fill),

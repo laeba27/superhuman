@@ -1,5 +1,3 @@
-/** Startup: wires the store to the panels and canvas, then loads a dashboard. */
-
 import { api } from './api.js';
 import { createCanvas } from './canvas.js';
 import { createCommands } from './commands.js';
@@ -37,7 +35,6 @@ store.subscribe((state, prev) => {
   if (state.dashboard?.name !== prev.dashboard?.name) {
     document.title = state.dashboard ? `${state.dashboard.name} · Dashboard Builder` : 'Dashboard Builder';
   }
-  // The editor needs room; on a phone, viewing is the main use.
   if (state.mode === 'edit' && prev.mode === 'preview' && narrowScreen.matches) {
     toast('Editing works best on a larger screen. Use a tablet or computer to arrange the dashboard.', { timeout: 5000 });
   }
@@ -69,7 +66,6 @@ createPropertiesPanel($('properties'), store, { editText: textEditor.start, pick
 createBreadcrumbs($('breadcrumbs'), store);
 createRail();
 
-/** The icon rail switches the left panel between Add and Layers. */
 function createRail() {
   const views = [
     { id: 'add', label: 'Add', icon: 'plus', panel: $('add-panel') },
@@ -90,10 +86,7 @@ function createRail() {
   show();
 }
 
-// ---- Loading ----------------------------------------------------------------
-
 async function boot() {
-  // ?view=preview (from "Copy preview link") and phones open straight into viewing.
   const params = new URLSearchParams(location.search);
   if (params.get('view') === 'preview' || narrowScreen.matches) store.dispatch({ type: 'mode/set', mode: 'preview' });
   try {
@@ -110,7 +103,6 @@ async function boot() {
   }
 }
 
-/** Opens a dashboard, saving the current one first. Resolves false if the user chose to stay. */
 async function openDashboard(id) {
   const state = store.getState();
   if (state.dashboard?.id === id) return true;
@@ -147,7 +139,6 @@ async function deleteDashboard() {
   if (!dashboard || dashboards.length < 2) return;
   if (!confirm(`Delete “${dashboard.name}”? This can’t be undone.`)) return;
   try {
-    // Nothing left to save for the deleted dashboard (this also cancels a pending autosave).
     store.dispatch({ type: 'dashboard/loaded', dashboard: null });
     await api.deleteDashboard(dashboard.id);
     saver.announceDelete(dashboard.id);
@@ -160,7 +151,6 @@ async function deleteDashboard() {
   }
 }
 
-/** Copies a link that opens this dashboard in preview (view-only) mode. */
 async function copyPreviewLink() {
   const { dashboard } = store.getState();
   if (!dashboard) return;
@@ -170,7 +160,6 @@ async function copyPreviewLink() {
     await navigator.clipboard.writeText(url.href);
     toast('Preview link copied. It opens this dashboard ready to view.');
   } catch {
-    // Clipboard access needs https or localhost; show the link instead.
     prompt('Copy this preview link:', url.href);
   }
 }
@@ -179,15 +168,11 @@ async function refreshList() {
   store.dispatch({ type: 'dashboards/listed', list: await api.listDashboards() });
 }
 
-// ---- Saving (see saver.js) ------------------------------------------------------------
-
-/** Keeps the dashboard menu's names current after a rename was saved. */
 function syncListName(saved) {
   const listed = store.getState().dashboards.find((d) => d.id === saved.id);
   if (listed && listed.name !== saved.name) refreshList().catch(() => {});
 }
 
-/** Another tab deleted the dashboard open here. */
 async function deletedElsewhere() {
   store.dispatch({ type: 'dashboard/loaded', dashboard: null });
   toast('This dashboard was deleted in another tab.', { error: true, timeout: 6000 });
@@ -201,8 +186,6 @@ async function deletedElsewhere() {
   }
 }
 
-// ---- Keyboard -------------------------------------------------------------------
-
 document.addEventListener('keydown', (event) => {
   const mod = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
@@ -213,7 +196,6 @@ document.addEventListener('keydown', (event) => {
     saver.save();
     return;
   }
-  // Zoom the canvas instead of the page.
   if (mod && (key === '=' || key === '+' || key === '-' || key === '0') && state.mode === 'edit' && !event.target.closest('dialog')) {
     event.preventDefault();
     if (key === '0') zoom.fit();
@@ -221,14 +203,13 @@ document.addEventListener('keydown', (event) => {
     else zoom.zoomIn();
     return;
   }
-  // Keys aimed at a form field, a text being edited or an open dialog aren't editor shortcuts.
   if (event.target.closest('input, textarea, select, dialog, [contenteditable="true"]') || state.mode !== 'edit') return;
 
   if (mod && (key === 'z' || key === 'y')) {
     event.preventDefault();
     store.dispatch({ type: key === 'y' || event.shiftKey ? 'history/redo' : 'history/undo' });
   } else if (mod && key === 'd' && state.selection) {
-    event.preventDefault(); // the browser would bookmark the page
+    event.preventDefault();
     commands.duplicate();
   } else if (mod && key === 'c' && state.selection) {
     commands.copy();
@@ -238,7 +219,6 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     commands.paste();
   } else if (mod && (event.code === 'BracketRight' || event.code === 'BracketLeft') && state.selection) {
-    // ⌘] / ⌘[ step forward/backward; with Alt, all the way to front/back.
     event.preventDefault();
     const up = event.code === 'BracketRight';
     commands.layer(event.altKey ? (up ? 'front' : 'back') : (up ? 'forward' : 'backward'));
@@ -250,7 +230,6 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     commands.remove();
   } else if (key.startsWith('arrow') && state.selection) {
-    // Nudge by 1px, or by one grid step with Shift. A run of nudges is one undo step.
     event.preventDefault();
     const { item } = findItem(state.dashboard, state.selection.id);
     const step = event.shiftKey ? state.dashboard.settings.gridSize : 1;
@@ -261,7 +240,6 @@ document.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('beforeunload', (event) => {
-  // Autosave usually got there first; only warn if something is still unsaved.
   if (store.getState().dirty || saver.isBusy()) event.preventDefault();
 });
 

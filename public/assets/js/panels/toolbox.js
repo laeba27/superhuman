@@ -1,8 +1,3 @@
-/**
- * Left "Add" panel: element tiles and ready-made layouts. Click a tile to add
- * it to the selected section, or drag it onto the canvas to place it.
- */
-
 import { registry } from '../elements/index.js';
 import { sectionAt } from '../interactions.js';
 import { findItem } from '../store.js';
@@ -13,7 +8,6 @@ const DRAG_TYPE = 'application/x-dashboard-tool';
 const SECTION_GAP = 24;
 const INSET = 16;
 
-/** Element tiles, by category. `make()` returns the new element's type, size and content. */
 const CATEGORIES = [
   { name: 'Structure', tools: [
     { id: 'section', name: 'Section', icon: 'section' },
@@ -33,8 +27,6 @@ const CATEGORIES = [
   ] },
 ];
 const TOOLS = new Map(CATEGORIES.flatMap((c) => c.tools).map((t) => [t.id, t]));
-
-// ---- Layouts: whole sections with elements already arranged ----------------------
 
 const text = (x, y, width, height, html) => ({ type: 'text', x, y, width, height, content: { html } });
 const chartOf = (variant, x, y, width, height) => ({ type: 'chart', x, y, width, height, content: registry.chart.defaults(variant).content });
@@ -147,8 +139,6 @@ export function createToolbox(root, store, canvas, viewport) {
     if (state.dashboard !== prev.dashboard || state.mode !== prev.mode) syncDisabled(state);
   });
 
-  // ---- Adding --------------------------------------------------------------------
-
   const ctx = { store, canvas };
 
   function add(payload, point = null) {
@@ -157,7 +147,6 @@ export function createToolbox(root, store, canvas, viewport) {
     return addElement(ctx, TOOLS.get(payload.id), point);
   }
 
-  // Dropping a tile on the canvas.
   let highlighted = null;
   const highlight = (node) => {
     if (highlighted === node) return;
@@ -229,18 +218,12 @@ function addElement(ctx, tool, point) {
   canvas.reveal(element.id);
 }
 
-/** The selected section, the section of the selected element, or the last section. */
 function targetSection(state) {
   const d = state.dashboard;
   const found = findItem(d, state.selection?.id);
   return found?.section ?? d.sections[d.sections.length - 1] ?? null;
 }
 
-/**
- * The first free spot (top-to-bottom, left-to-right) where a box fits without
- * overlapping existing elements. Falls back to just below the lowest element;
- * the store grows the section to fit.
- */
 function findSpot(section, width, height) {
   const step = 8;
   const overlaps = (x, y) => section.elements.some((e) =>

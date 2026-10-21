@@ -1,5 +1,3 @@
-/** Top bar: dashboard menu, device widths, save status, undo/redo, preview and save. */
-
 import { DEVICE_WIDTHS } from '../canvas.js';
 import { h, icon } from '../utils.js';
 
@@ -10,7 +8,6 @@ const DEVICES = [
 ];
 
 export function createTopbar(root, store, { onOpen, onCreate, onDelete, onSave, onRetry, onResolve, onCopyLink }) {
-  // ---- Dashboard menu --------------------------------------------------------
 
   const chipLabel = h('span', { class: 'chip-label' });
   const chip = h('button', { class: 'chip', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Dashboards' },
@@ -44,17 +41,12 @@ export function createTopbar(root, store, { onOpen, onCreate, onDelete, onSave, 
     );
   }
 
-  // ---- Devices ------------------------------------------------------------------
-
   const deviceButtons = DEVICES.map((d) => h('button', {
     class: 'icon-btn', type: 'button', title: `${d.label} width`, 'aria-label': `${d.label} width`,
     onClick: () => store.dispatch({ type: 'ui/device', device: d.id }),
   }, icon(d.icon)));
   const width = h('span', { class: 'device-width' });
 
-  // ---- Right side ------------------------------------------------------------------
-
-  // A button so a failed save or a conflict can be acted on from here.
   const status = h('button', { class: 'save-status', type: 'button', 'aria-live': 'polite', onClick: () => {
     const { saveStatus } = store.getState();
     if (saveStatus === 'retrying' || saveStatus === 'error') onRetry();
@@ -89,7 +81,6 @@ export function createTopbar(root, store, { onOpen, onCreate, onDelete, onSave, 
     width.textContent = `${DEVICE_WIDTHS[state.device] ?? d?.canvasWidth ?? 1200} PX`;
 
     renderStatus(state);
-    // Tick the retry countdown once a second.
     if (state.saveStatus === 'retrying' && !countdown) countdown = setInterval(() => renderStatus(store.getState()), 1000);
     if (state.saveStatus !== 'retrying' && countdown) { clearInterval(countdown); countdown = null; }
 
