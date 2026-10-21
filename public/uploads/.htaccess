@@ -1,0 +1,7 @@
+# Uploaded files are only ever served as images. Never run them as scripts.
+<FilesMatch "\.(php\d?|phtml|phar)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>

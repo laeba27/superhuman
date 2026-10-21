@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Builder</title>
+  <link rel="icon" href="assets/img/sample-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.27/interact.min.js" defer></script>
+  <script type="module" src="assets/js/main.js"></script>
+</head>
+<body data-mode="edit">
+  <header class="topbar" id="topbar"></header>
+
+  <div class="workspace">
+    <nav class="rail" id="rail" aria-label="Panels"></nav>
+
+    <aside class="panel side-panel" id="side-panel">
+      <div class="side-view" id="add-panel" aria-label="Add elements"></div>
+      <div class="side-view" id="layers-panel" aria-label="Layers" hidden></div>
+    </aside>
+
+    <main class="canvas-viewport" id="viewport">
+      <div class="canvas-stage" id="stage">
+        <div class="canvas" id="canvas"></div>
+      </div>
+      <div class="canvas-message" id="canvas-message" hidden></div>
+    </main>
+
+    <aside class="panel properties" id="properties" aria-label="Properties"></aside>
+  </div>
+
+  <footer class="statusbar">
+    <nav class="breadcrumbs" id="breadcrumbs" aria-label="Selection path"></nav>
+    <div class="zoom" id="zoom" role="group" aria-label="Zoom"></div>
+  </footer>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

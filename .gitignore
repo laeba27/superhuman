@@ -1,0 +1,9 @@
+.env
+public/uploads/*
+!public/uploads/.htaccess
+!public/uploads/.gitkeep
+.DS_Store
+
+# Docs stay local; only the README is published.
+*.md
+!README.md
